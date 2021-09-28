@@ -47,3 +47,18 @@ If you subscribe in AWS IoT, you should be see a return message similar to:
   "rainHeight": "23"
 }
 ```
+
+    git clone https://github.com/aws/aws-iot-device-sdk-python-v2.git
+    python3 -m pip install ./aws-iot-device-sdk-python-v2
+
+Make sure to have the following:
+
+    sudo apt-get update
+    sudo apt-get install cmake
+    sudo apt-get install python3-dev
+
+
+Use this file as example:
+
+https://github.com/aws/aws-iot-device-sdk-python-v2/blob/main/samples/pubsub.py
+
