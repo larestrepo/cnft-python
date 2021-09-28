@@ -5,7 +5,7 @@ from random import randint
 import json
 import datetime
 
-connflg = False
+connflag = False
 
 def on_connect(client, suerdata, flags, rc):
     global connflag
@@ -13,17 +13,17 @@ def on_connect(client, suerdata, flags, rc):
     connflag = True
     print('Connection returned result :' +  str(rc))
 
-mqttc = mqtt.Client('Env_Sensor_1')
+mqttc = mqtt.Client('Raspbey_thing')
 mqttc.on_connect = on_connect
 
-awshost = 'a1rgstrntakbmi-ats.iot.us-west-2.amazonaws.com'
+awshost = 'a1rgstrntakbmi-ats.iot.us-east-2.amazonaws.com'
 awsport = 8883
-caPath = './certificates/SFSRootCAG2.pem.crt'
-certPath = './certificates/8486adadf8-certificate.pem.crt'
-keyPath = './certificates/8486adadf8-private.pem.key'
+caPath = './certificates/AmazonRootCA1.pem'
+certPath = './certificates/2beae4c39f-certificate.pem.crt'
+keyPath = './certificates/2beae4c39f-private.pem.key'
 
-mqttc.tls_set(ca_certs = caPath, certfile = certPath, keyfile = keyPath, cert_reqs=ssl.CERT_REQUIRED, 
-                tls_version=ssl.PROTOCOL_TLSv1_2, ciphers = None)
+mqttc.tls_set(ca_certs=caPath, certfile=certPath, keyfile=keyPath, cert_reqs=ssl.CERT_REQUIRED,
+              tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)  
 
 mqttc.connect (awshost, awsport, keepalive = 60)
 
