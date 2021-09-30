@@ -31,7 +31,7 @@ parser.add_argument('--message', default="", help="Message to publish. " +
                                                               "Specify empty string to publish nothing.")
 parser.add_argument('--count', default=0, type=int, help="Number of messages to publish/receive before exiting. " +
                                                           "Specify 0 to run forever.")
-parser.add_argument('--use-websocket', default=False, action='store_true',
+parser.add_argument('--use-websocket', default=True, action='store_true',
     help="To use a websocket instead of raw mqtt. If you " +
     "specify this option you must specify a region for signing.")
 parser.add_argument('--signing-region', default='us-east-2', help="If you specify --use-web-socket, this " +
@@ -75,14 +75,17 @@ def on_resubscribe_complete(resubscribe_future):
             if qos is None:
                 sys.exit("Server rejected resubscribe to topic: {}".format(topic))
 
-
 # Callback when the subscribed topic receives a message
 def on_message_received(topic, payload, dup, qos, retain, **kwargs):
     print("Received message from topic '{}': {}".format(topic, payload))
     global received_count
+    global obj
+    obj = payload.decode()
+    print(obj)
     received_count += 1
     if received_count == args.count:
         received_all_event.set()
+    
 
 if __name__ == '__main__':
     # Spin up resources
@@ -139,6 +142,7 @@ if __name__ == '__main__':
         topic=args.topic,
         qos=mqtt.QoS.AT_LEAST_ONCE,
         callback=on_message_received)
+    
 
     subscribe_result = subscribe_future.result()
     print("Subscribed with {}".format(str(subscribe_result['qos'])))
