@@ -10,6 +10,10 @@ import time
 from uuid import uuid4
 import json
 
+from queue import Queue
+q=Queue()
+import cardanowallet as cw
+
 # This sample uses the Message Broker for AWS IoT to send and receive messages
 # through an MQTT connection. On startup, the device connects to the server,
 # subscribes to a topic, and begins publishing messages to that topic.
@@ -29,9 +33,9 @@ parser.add_argument('--client-id', default="test-" + str(uuid4()), help="Client 
 parser.add_argument('--topic', default="test/topic", help="Topic to subscribe to, and publish messages to.")
 parser.add_argument('--message', default="", help="Message to publish. " +
                                                               "Specify empty string to publish nothing.")
-parser.add_argument('--count', default=0, type=int, help="Number of messages to publish/receive before exiting. " +
+parser.add_argument('--count', default=2, type=int, help="Number of messages to publish/receive before exiting. " +
                                                           "Specify 0 to run forever.")
-parser.add_argument('--use-websocket', default=True, action='store_true',
+parser.add_argument('--use-websocket', default=False, action='store_true',
     help="To use a websocket instead of raw mqtt. If you " +
     "specify this option you must specify a region for signing.")
 parser.add_argument('--signing-region', default='us-east-2', help="If you specify --use-web-socket, this " +
@@ -76,16 +80,17 @@ def on_resubscribe_complete(resubscribe_future):
                 sys.exit("Server rejected resubscribe to topic: {}".format(topic))
 
 # Callback when the subscribed topic receives a message
+obj = []
 def on_message_received(topic, payload, dup, qos, retain, **kwargs):
-    print("Received message from topic '{}': {}".format(topic, payload))
-    global received_count
-    global obj
-    obj = payload.decode()
-    print(obj)
-    received_count += 1
-    if received_count == args.count:
-        received_all_event.set()
-    
+    messages = payload.decode('utf-8')
+    messages = json.loads(messages)
+    # Build array depending on the number of messages to be received (Number is set by the seq identifier in the json file)
+    obj.append(messages)
+    #q.put(obj) If queue is needed.
+    print("Received message from topic '{}': {}".format(topic, obj))
+    # Waits until the object lenght is equal to the sequence number in the message
+    if len(obj) == obj[0]['seq']:
+        cw.result_treatment(obj)
 
 if __name__ == '__main__':
     # Spin up resources
@@ -142,8 +147,7 @@ if __name__ == '__main__':
         topic=args.topic,
         qos=mqtt.QoS.AT_LEAST_ONCE,
         callback=on_message_received)
-    
-
+     
     subscribe_result = subscribe_future.result()
     print("Subscribed with {}".format(str(subscribe_result['qos'])))
 
@@ -170,10 +174,14 @@ if __name__ == '__main__':
 
     # Wait for all messages to be received.
     # This waits forever if count was set to 0.
-    if args.count != 0 and not received_all_event.is_set():
-        print("Waiting for all messages to be received...")
+    # if args.count != 0 and not received_all_event.is_set():
+    #     print("Waiting for all messages to be received...")
 
+    # Prevents the execution of the code below (Disconnet) while received_all_event flag is False
     received_all_event.wait()
+    
+    
+
     print("{} message(s) received.".format(received_count))
 
     # Disconnect
