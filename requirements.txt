@@ -2,7 +2,6 @@ astroid==2.8.0
 attrs==21.2.0
 awscrt==0.12.1
 AWSIoTPythonSDK==1.4.9
-awsiotsdk @ file:///home/cexplorer/cnft-python/aws-iot-device-sdk-python-v2
 certifi==2021.5.30
 charset-normalizer==2.0.6
 idna==3.2

@@ -1,18 +1,62 @@
 # cnft-python
+
 Cardano NFT Python
+##
+
+### Configure Virtual Environment for Python
+
+    sudo apt update && upgrade -y
+
+Command for python3
+
+    sudo apt install python3-pip
+    pip3 --version
+    sudo -H pip3 install -upgrade pip
+    sudo -H pip3 install virtualenv virtualenvwrapper
+
+Setting up env variables for the virtual environment
+
+    echo "export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3" >> ~/.bashrc
+    echo "export WORKON_HOME=~/Env" >> ~/.bashrc
+    echo "source /usr/local/bin/virtualenvwrapper.sh" >> ~/.bashrc
+    source ~/.bashrc
+
+Create the virtual environment
+
+    mkvirtualenv <name of the virtual environment>
+
+The virtual env wrapper should do all the work for you, install python inside and launch it.
+
+Everytime you want to start the virtualenv just type: workon <name of the virtual environment>
+
+    pip3 install -r requirements.txt
+
+However aws-iot-device-sdk-python-v2 should be installed manually
+
+    sudo sudo apt update
+    sudo apt install cmake
+    sudo apt install python3-dev
+
+    cd ~/git
+
+    git clone https://github.com/aws/aws-iot-device-sdk-python-v2.git
+    python3 -m pip install ./aws-iot-device-sdk-python-v2
 
 
-Clone the repository
 
+### Clone the repository
+
+    cd ~/git
     git clone https://github.com/larestrepo/cnft-python.git
     cd cnft-python
 
+With the virtual environment active:
 
+    pip install -r requirements.txt
 
+If requirements.txt still contains the aws-iot-device-sdk-python-v2 remove it, otherwise it will throw errors.
 
 #
-
-
 
 ### AWS IoT basic setup
 
@@ -65,18 +109,7 @@ If you subscribe in AWS IoT, you should be see a return message similar to:
 
 ### AWS IoT with sdk-python-v2 setup
 
-
-    git clone https://github.com/aws/aws-iot-device-sdk-python-v2.git
-    python3 -m pip install ./aws-iot-device-sdk-python-v2
-
-Make sure to have the following:
-
-    sudo apt-get update
-    sudo apt-get install cmake
-    sudo apt-get install python3-dev
-
-
-Use this file as example:
+Use this file as reference:
 
 https://github.com/aws/aws-iot-device-sdk-python-v2/blob/main/samples/pubsub.py
 
@@ -108,4 +141,12 @@ Ref: https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.htm
     aws configure
 
 And follow the steps from the shell. 
+
+4. Create additional folders to contain certificates and secrets
+
+It is needed cert, key and root-ca files. (Similar to Point 4 of the AWS basic setup)
+
+
+
+
 
