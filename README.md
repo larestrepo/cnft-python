@@ -2,6 +2,18 @@
 Cardano NFT Python
 
 
+Clone the repository
+
+    git clone https://github.com/larestrepo/cnft-python.git
+    cd cnft-python
+
+
+
+
+#
+
+
+
 ### AWS IoT basic setup
 
 Steps to configure basic communication (subscribe and connect)
