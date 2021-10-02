@@ -147,6 +147,30 @@ And follow the steps from the shell.
 It is needed cert, key and root-ca files. (Similar to Point 4 of the AWS basic setup)
 
 
+### Publish command from AWS IOT Core to Cardano-node
+
+Source CARDANO_NODE_SOCKET_PATH to bashrc
+
+    echo "export CARDANO_NODE_SOCKET_PATH=/opt/cardano/cnode/sockets/node0.socket" >> ~/.bashrc
+
+Commands are sent in json format. The fields are:
+
+seq (type: int): Indicates the number of messages to receive to build the command. Currently 1 is used which means that all the information needed to build the command is sent in one json.
+
+cmd_id (type: string): command identifier
+
+message (type: string): in case any additional parameter is needed to build the command i.e. wallet address.
+
+1. Query tip
+
+```json
+{
+  "seq": 1,
+  "cmd_id": "query_tip",
+  "message": ""
+}
+```
+
 
 
 

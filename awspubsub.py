@@ -35,7 +35,7 @@ parser.add_argument('--message', default="", help="Message to publish. " +
                                                               "Specify empty string to publish nothing.")
 parser.add_argument('--count', default=2, type=int, help="Number of messages to publish/receive before exiting. " +
                                                           "Specify 0 to run forever.")
-parser.add_argument('--use-websocket', default=False, action='store_true',
+parser.add_argument('--use-websocket', default=True, action='store_true',
     help="To use a websocket instead of raw mqtt. If you " +
     "specify this option you must specify a region for signing.")
 parser.add_argument('--signing-region', default='us-east-2', help="If you specify --use-web-socket, this " +
@@ -89,8 +89,16 @@ def on_message_received(topic, payload, dup, qos, retain, **kwargs):
     #q.put(obj) If queue is needed.
     print("Received message from topic '{}': {}".format(topic, obj))
     # Waits until the object lenght is equal to the sequence number in the message
-    if len(obj) == obj[0]['seq']:
-        cw.result_treatment(obj)
+    try: 
+        if len(obj) == obj[0]['seq']:
+            result_json = cw.result_treatment(obj)
+            q.put(result_json)
+            if result_json:
+                received_all_event.set()
+    except: 
+        print("Received message from topic without seq param, no command executed '{}': {}".format(topic, obj.pop(0)))
+    
+    
 
 if __name__ == '__main__':
     # Spin up resources
@@ -150,27 +158,31 @@ if __name__ == '__main__':
      
     subscribe_result = subscribe_future.result()
     print("Subscribed with {}".format(str(subscribe_result['qos'])))
+    print(packet_id)
 
     # Publish message to server desired number of times.
     # This step is skipped if message is blank.
     # This step loops forever if count was set to 0.
-    if args.message:
-        if args.count == 0:
-            print ("Sending messages until program killed")
-        else:
-            print ("Sending {} message(s)".format(args.count))
+    # if args.message:
+    #     if args.count == 0:
+    #         print ("Sending messages until program killed")
+    #     else:
+    #         print ("Sending {} message(s)".format(args.count))
 
-        publish_count = 1
-        while (publish_count <= args.count) or (args.count == 0):
-            message = "{} [{}]".format(args.message, publish_count)
-            print("Publishing message to topic '{}': {}".format(args.topic, message))
-            message_json = json.dumps(message)
-            mqtt_connection.publish(
-                topic=args.topic,
-                payload=message_json,
-                qos=mqtt.QoS.AT_LEAST_ONCE)
-            time.sleep(1)
-            publish_count += 1
+    #     publish_count = 1
+    #     while (publish_count <= args.count) or (args.count == 0):
+    #         message = "{} [{}]".format(args.message, publish_count)
+    #         print("Publishing message to topic '{}': {}".format(args.topic, message))
+    #         message_json = json.dumps(message)
+    #         mqtt_connection.publish(
+    #             topic=args.topic,
+    #             payload=message_json,
+    #             qos=mqtt.QoS.AT_LEAST_ONCE)
+    #         time.sleep(1)
+    #         publish_count += 1
+
+    # if obj:
+        #while not q.empty():
 
     # Wait for all messages to be received.
     # This waits forever if count was set to 0.
@@ -180,7 +192,15 @@ if __name__ == '__main__':
     # Prevents the execution of the code below (Disconnet) while received_all_event flag is False
     received_all_event.wait()
     
-    
+    message = q.get()
+    message = "{} [{}]".format("Hola mundo", 1)
+    print("Publishing message to topic '{}': {}".format(args.topic, message))
+    message_json = json.dumps(message)
+    mqtt_connection.publish(
+        topic=args.topic,
+        payload=message_json,
+        qos=mqtt.QoS.AT_LEAST_ONCE)
+    time.sleep(1)
 
     print("{} message(s) received.".format(received_count))
 
