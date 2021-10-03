@@ -28,7 +28,7 @@ def result_treatment(obj):
         result = query_tip_exec()
         result = result.decode('utf-8')
         result = json.loads(result)
-        print('Command result {}'.format(result))
+        print('Command result {}'.format(result['epoch']))
 
     return result
 

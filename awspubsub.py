@@ -13,6 +13,7 @@ import json
 from queue import Queue
 q=Queue()
 import cardanowallet as cw
+import iot_publish as pub
 
 # This sample uses the Message Broker for AWS IoT to send and receive messages
 # through an MQTT connection. On startup, the device connects to the server,
@@ -94,12 +95,11 @@ def on_message_received(topic, payload, dup, qos, retain, **kwargs):
             result_json = cw.result_treatment(obj)
             q.put(result_json)
             if result_json:
-                received_all_event.set()
+                pub.send_message(args.client_id,result_json)
+            #     received_all_event.set()
     except: 
         print("Received message from topic without seq param, no command executed '{}': {}".format(topic, obj.pop(0)))
     
-    
-
 if __name__ == '__main__':
     # Spin up resources
     event_loop_group = io.EventLoopGroup(1)
@@ -158,7 +158,6 @@ if __name__ == '__main__':
      
     subscribe_result = subscribe_future.result()
     print("Subscribed with {}".format(str(subscribe_result['qos'])))
-    print(packet_id)
 
     # Publish message to server desired number of times.
     # This step is skipped if message is blank.
@@ -191,16 +190,6 @@ if __name__ == '__main__':
 
     # Prevents the execution of the code below (Disconnet) while received_all_event flag is False
     received_all_event.wait()
-    
-    message = q.get()
-    message = "{} [{}]".format("Hola mundo", 1)
-    print("Publishing message to topic '{}': {}".format(args.topic, message))
-    message_json = json.dumps(message)
-    mqtt_connection.publish(
-        topic=args.topic,
-        payload=message_json,
-        qos=mqtt.QoS.AT_LEAST_ONCE)
-    time.sleep(1)
 
     print("{} message(s) received.".format(received_count))
 
