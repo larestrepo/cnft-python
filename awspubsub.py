@@ -82,23 +82,32 @@ def on_resubscribe_complete(resubscribe_future):
 
 # Callback when the subscribed topic receives a message
 obj = []
-def on_message_received(topic, payload, dup, qos, retain, **kwargs):
+def on_message_received(topic, payload, dup, qos, retain, **kwargs): 
     messages = payload.decode('utf-8')
     messages = json.loads(messages)
-    # Build array depending on the number of messages to be received (Number is set by the seq identifier in the json file)
-    obj.append(messages)
-    #q.put(obj) If queue is needed.
-    print("Received message from topic '{}': {}".format(topic, obj))
-    # Waits until the object lenght is equal to the sequence number in the message
-    try: 
-        if len(obj) == obj[0]['seq']:
-            result_json = cw.result_treatment(obj)
-            q.put(result_json)
-            if result_json:
-                pub.send_message(args.client_id,result_json)
-            #     received_all_event.set()
+    try:
+        if not 'client-id' in messages:
+            # Build array depending on the number of messages to be received (Number is set by the seq identifier in the json file)
+            obj.append(messages)
+            print("Received message from topic '{}': {}".format(topic, obj))
+            # # Waits until the object lenght is equal to the sequence number in the message 
+            if len(obj) == obj[0]['seq']:
+                result_json = cw.result_treatment(obj,args.client_id)
+                # q.put(result_json)
+                # message = q.get()
+                message = result_json
+                print("Publishing message to topic '{}': {}".format(args.topic, message))
+                message_json = json.dumps(message)
+                mqtt_connection.publish(
+                    topic=args.topic,
+                    payload=message_json,
+                    qos=mqtt.QoS.AT_LEAST_ONCE)
+                time.sleep(1)
     except: 
-        print("Received message from topic without seq param, no command executed '{}': {}".format(topic, obj.pop(0)))
+        if obj:
+            print("Message without seq param, no command executed {}".format(obj.pop(0)))
+        else: 
+            print("No message received")
     
 if __name__ == '__main__':
     # Spin up resources
@@ -158,30 +167,6 @@ if __name__ == '__main__':
      
     subscribe_result = subscribe_future.result()
     print("Subscribed with {}".format(str(subscribe_result['qos'])))
-
-    # Publish message to server desired number of times.
-    # This step is skipped if message is blank.
-    # This step loops forever if count was set to 0.
-    # if args.message:
-    #     if args.count == 0:
-    #         print ("Sending messages until program killed")
-    #     else:
-    #         print ("Sending {} message(s)".format(args.count))
-
-    #     publish_count = 1
-    #     while (publish_count <= args.count) or (args.count == 0):
-    #         message = "{} [{}]".format(args.message, publish_count)
-    #         print("Publishing message to topic '{}': {}".format(args.topic, message))
-    #         message_json = json.dumps(message)
-    #         mqtt_connection.publish(
-    #             topic=args.topic,
-    #             payload=message_json,
-    #             qos=mqtt.QoS.AT_LEAST_ONCE)
-    #         time.sleep(1)
-    #         publish_count += 1
-
-    # if obj:
-        #while not q.empty():
 
     # Wait for all messages to be received.
     # This waits forever if count was set to 0.

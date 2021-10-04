@@ -19,24 +19,21 @@ def query_tip_exec():
         print('error in command')
 
 
-def result_treatment(obj):
+def result_treatment(obj,client_id):
 
     """Main function that receives the object from the pubsub and defines which execution function to call"""
 
     if obj[0]['cmd_id'] == 'query_tip':
         print('Executing {}'.format(obj.pop(0)))
+        main ={
+            'client-id': client_id
+        }
         result = query_tip_exec()
         result = result.decode('utf-8')
         result = json.loads(result)
-        print('Command result {}'.format(result['epoch']))
+        main.update(result)
 
-    return result
-
-    # while len(obj)>0:
-    #     print(obj.pop(0))
-    # while not q.empty():    
-    #     message = q.get()
-    #     print("queue: ",message)
+    return main
 
 
 # mnemonic = subprocess.check_output([
