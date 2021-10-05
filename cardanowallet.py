@@ -1,22 +1,6 @@
-import subprocess
-from decouple import config
 import json
+import library as lb
 
-# Import params
-CARDANO_NETWORK_MAGIC = config('CARDANO_NETWORK_MAGIC')
-CARDANO_CLI_PATH = config('CARDANO_CLI_PATH')
-
-def query_tip_exec():
-    # We tell python to execute cardano-cli shell command to query the blockhain and read the output data
-    try:
-        command_string = [
-            CARDANO_CLI_PATH,
-            'query', 'tip',
-            '--testnet-magic', str(CARDANO_NETWORK_MAGIC)]
-        rawTipResult = subprocess.check_output(command_string)
-        return rawTipResult
-    except:
-        print('error in command')
 
 
 def result_treatment(obj,client_id):
@@ -28,10 +12,21 @@ def result_treatment(obj,client_id):
         main ={
             'client-id': client_id
         }
-        result = query_tip_exec()
+        result = lb.query_tip_exec()
         result = result.decode('utf-8')
         result = json.loads(result)
         main.update(result)
+
+    elif obj[0]['cmd_id'] == 'query_utxo':
+        #print('Executing {}'.format(obj.pop(0)))
+        print('Executing query utxo')
+        main ={
+            'client-id': client_id
+        }
+        address = obj[0]['message']['address']
+        result = lb.get_transactions(address)
+        main.update(result)
+        print(main)
 
     return main
 
