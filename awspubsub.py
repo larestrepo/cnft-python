@@ -12,18 +12,19 @@ import json
 
 import cardanowallet as cw
 
+# Load files and config parameters
 
 with open('./config_file.json') as file:
     params=json.load(file)
 
-endpoint = params['endpoint']
-port = params['port']
-cert = params['cert']
-key = params['key']
-root_ca = params['root-ca']
-verbosity = params['verbosity']['NoLogs']
-signing_region = params['signing_region']
-topic = params['topic']
+endpoint = params['AWS_IOT']['endpoint']
+port = params['AWS_IOT']['port']
+cert = params['AWS_IOT']['cert']
+key = params['AWS_IOT']['key']
+root_ca = params['AWS_IOT']['root-ca']
+verbosity = params['AWS_IOT']['verbosity']['NoLogs']
+signing_region = params['AWS_IOT']['signing_region']
+topic = params['AWS_IOT']['topic']
 client_id = "test-" + str(uuid4())
 
 io.init_logging(getattr(io.LogLevel, verbosity), 'stderr')

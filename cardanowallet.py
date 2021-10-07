@@ -1,8 +1,6 @@
 import json
 import library as lb
 
-
-
 def result_treatment(obj,client_id):
 
     """Main function that receives the object from the pubsub and defines which execution function to call"""
