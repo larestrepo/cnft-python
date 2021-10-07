@@ -1,55 +1,45 @@
 import unittest
 import library as lb
-
-utxoHash = 'edfe874cfcb0ac5d0d4d9c14248abc374c6d2683a4a518332b18be9999bba9a0#0'
-walletName = 'acdc'
-wallet01 = 'main'
-wallet02 = 'Will_Cotrino_2'
-quantity = 3000000
-token = 'ADA'
+import time
 
 
 class TestLibrary (unittest.TestCase):
 
-    
-    """Steps to send funds
-        1.Check the balance of the source wallet
-        2. Pick Utxo hash 
-        2. Build raw tx file 
-        3. Calculate min fees
-        4. Build raw tx file including min fees
-        5. Sign the transaction
-        6. Submit the transaction
-    """
-
-    # def test_querytip(self):
-    #     query_tip = lb.query_tip_exec()
-    #     print(query_tip)
-    #     self.assertFalse(query_tip == {})
-
-    # def test_getbalance(self):
-    #     #pending testing with different tokens
-    #     balance = lb.get_balance(walletName,token)
-    #     print(balance)
-    #     self.assertTrue(type(balance) is dict)
-
-    # def test_get_transactions(self):
-    #     test_transactions = lb.get_transactions(wallet01)
-    #     print(test_transactions)
-    #     self.assertTrue(type(test_transactions) is dict)
-
-
-    # def test_min_fee(self):
-    #     test_fee = lb.tx_min_fee(utxoHash,wallet01,wallet02)
-    #     print (test_fee)
-    #     self.assertFalse(test_fee=={})
-    
-    # def test_tx_submmit(self):
-    #     test_submmit = lb.sign_submmit(utxoHash, quantity, token, wallet01, wallet02)
-
 
     def test_send_funds(self):
-        send_funds = lb.send_funds(wallet01,wallet02,2,'ADA')
+
+        walletName = 'acdc'
+        wallet01 = 'main'
+        wallet02 = 'Will_Cotrino_2'
+        quantity = 10
+        token = 'ADA'
+        # Verify initial funds from the wallets to test
+        if token=='ADA':
+            token = 'lovelace'
+            param = 1000000
+        else:
+            param = 1
+
+        balance01 = round(lb.get_balance(wallet01,token)[token])
+        balance02 = round(lb.get_balance(wallet02,token)[token])
+
+        addr_origin = lb.wallet_to_address(wallet01)
+        addr_destin = lb.wallet_to_address(wallet02)
+        fees = lb.tx_min_fee(addr_origin,addr_destin)
+        fees = int(fees.decode('utf-8'))
+
+        send_funds = lb.send_funds(wallet01,wallet02,quantity*param,token)
+
+        new_balance01 = balance01 - quantity*param - fees
+        new_balance02 = balance02 + quantity*param
+        # 60 seconds to allow the blockchain to process and confirm the transaction
+        time.sleep(60)
+        actual_balance01 = lb.get_balance(wallet01,token)
+        actual_balance02 = lb.get_balance(wallet02,token)
+
+        #self.assertTrue (type(test_transactions) is dict)
+        self.assertEqual(actual_balance01['lovelace'],new_balance01,"There must be some problem with the transaction")
+        self.assertEqual(actual_balance02['lovelace'],new_balance02,"There must be some problem with the transaction")
 
 
 

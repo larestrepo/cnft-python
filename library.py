@@ -39,8 +39,11 @@ try:
 except:
     print('query protocol error')
 
-# with open('./protocol.json') as file:
-#     protocol = json.load(file)
+
+def create_wallet():
+    mnemonic = subprocess.check_output([
+    'cardano-wallet', 'recovery-phrase', 'generate'
+    ])
 
 def query_tip_exec():
     """Executes query tip. 
@@ -58,7 +61,7 @@ def query_tip_exec():
     except:
         print('query tip error')
 
-def build_raw_tx(TxHash, addr_origin, addr_destin, balance_origin, balance_destin, fee):
+def build_raw_tx(TxHash, addr_origin, addr_destin, balance_origin, quantity, fee):
     """
     Transaction build raw.
     :param address: TxHash of the origin address, address origin and destin
@@ -69,7 +72,7 @@ def build_raw_tx(TxHash, addr_origin, addr_destin, balance_origin, balance_desti
             CARDANO_CLI_PATH,
             'transaction', 'build-raw',
             '--tx-in', TxHash,
-            '--tx-out', addr_destin + '+' + str(balance_destin),
+            '--tx-out', addr_destin + '+' + str(quantity),
             '--tx-out', addr_origin + '+' + str(balance_origin),
             '--fee', str(fee),
             '--out-file', protocol_file_path + '/tx.draft']
@@ -226,7 +229,7 @@ def send_funds(wallet_origin, wallet_destin, quantity, token):
 
             balance_destin = round(get_balance(addr_destin,token)['lovelace'] + quantity*param)
             #Create the tx_raw file with the fees included
-            build_raw_tx(TxHash, addr_origin, addr_destin, balance_origin, balance_destin, fee)
+            build_raw_tx(TxHash, addr_origin, addr_destin, balance_origin, quantity*param, fee)
 
             print("################################")
             print("Sending '{}' from {} to {}. Fees are: {}".format(quantity*param, wallet_origin, wallet_destin,fee))
