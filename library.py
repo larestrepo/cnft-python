@@ -39,12 +39,6 @@ try:
 except:
     print('query protocol error')
 
-
-def create_wallet():
-    mnemonic = subprocess.check_output([
-    'cardano-wallet', 'recovery-phrase', 'generate'
-    ])
-
 def query_tip_exec():
     """Executes query tip. 
         No params needed
@@ -220,14 +214,14 @@ def send_funds(wallet_origin, wallet_destin, quantity, token):
             fee = int(fee.decode('utf-8'))
             print(fee)
 
-            #Find utxo, for the time being not handling dust. The wallet should offer to unify the utxos with small balances.
+            #Find utxo, for the time being not handling dust. The wallet should offer to unify the utxos with small balances. 
+            #Exploring cardano-wallet to handle utxo pick up.
             for utxo in addr_origin_tx['transactions']:
                 for amount in utxo['amounts']:
                     if amount['token']==token and int(amount['amount'])>= quantity*param + fee:
                         TxHash = utxo['hash'] + '#' + utxo['id']
                         balance_origin = round(int(amount['amount'])- (quantity*param) - fee)
 
-            balance_destin = round(get_balance(addr_destin,token)['lovelace'] + quantity*param)
             #Create the tx_raw file with the fees included
             build_raw_tx(TxHash, addr_origin, addr_destin, balance_origin, quantity*param, fee)
 

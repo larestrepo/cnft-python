@@ -3,6 +3,12 @@
 Cardano NFT Python
 ##
 
+### Prerequesites
+
+1. Cardano-node running (separate readme file explaining how to build it)
+2. Cardano wallet running (separate readme file explaining how to build it). Some of the built in functionalities can be covered from CLI but there are some functionalities that we want to make them through the API wallet.
+3. AWS IOT Core configured. Basic instructions are explained here. 
+
 ### Configure Virtual Environment for Python
 
     sudo apt update && upgrade -y
