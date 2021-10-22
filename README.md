@@ -176,6 +176,16 @@ message (type: string): in case any additional parameter is needed to build the 
   "message": ""
 }
 ```
+2. generate_new_mnemonic_phrase
+```json
+{
+  "seq": 1,
+  "cmd_id": "generate_new_mnemonic_phrase",
+  "message": { 
+		"size": 24,
+  }
+}
+```
 
 
 

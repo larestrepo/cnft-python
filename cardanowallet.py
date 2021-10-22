@@ -1,5 +1,6 @@
 import json
 import library as lb
+import wallet_lib as wallet
 
 def result_treatment(obj,client_id):
 
@@ -25,6 +26,17 @@ def result_treatment(obj,client_id):
         result = lb.get_transactions(address)
         main.update(result)
         print(main)
+    
+    elif obj[0]['cmd_id'] == 'generate_new_mnemonic_phrase':
+        print('Executing generate_new_mnemonic_phrase')
+        main ={
+            'client-id': client_id
+        }
+        size = obj[0]['message']['size']    
+        size = 24
+        mnemonic = wallet.generate_mnemonic(size)
+        main['wallet_mnemonic']=mnemonic
+        print(main['wallet_mnemonic'])
 
     return main
 

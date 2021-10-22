@@ -48,6 +48,9 @@ class TestLibrary (unittest.TestCase):
             wallet_name = 'test5'
             passphrase = 'test123456'
             size = 24
+            main ={
+            'client-id': 'asjfdkjfnfdnmdlk'
+        }
             mnemonic = wallet.generate_mnemonic(size)
             print(mnemonic)
 
@@ -62,7 +65,13 @@ class TestLibrary (unittest.TestCase):
             
             addresses = wallet.get_addresses(response['id'])
             print(addresses[0]['id'])
-    
+    if test_id==3:
+        def test_delete_wallet(self):
+            list_wallets=wallet.list_wallets()
+            print(list_wallets)
+            for k, v in list_wallets.items():
+                if k==[id]:
+                    wallet.delete_wallet(k)
         
 
             

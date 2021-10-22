@@ -6,7 +6,13 @@ import json
 
 URL = 'http://localhost:8090/v2/wallets/'
 
+def list_wallets():
+    request_status_url = URL
+    wallets_info = requests.get(request_status_url)
+    return wallets_info.json()
+
 def generate_mnemonic(size=24):
+    print('generating mnemonic')
     command_string = [
         'cardano-wallet', 'recovery-phrase', 'generate',
         '--size', str(size)
@@ -42,3 +48,8 @@ def get_addresses(id):
     request_address_url = URL + id + '/addresses?state=unused'
     addresses = requests.get (request_address_url)
     return addresses.json()
+
+def delete_wallet(id):
+    request_status_url = URL + id
+    wallet_info = requests.delete(request_status_url)
+    return wallet_info.json()
