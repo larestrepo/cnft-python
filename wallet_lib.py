@@ -12,7 +12,6 @@ def list_wallets():
     return wallets_info.json()
 
 def generate_mnemonic(size=24):
-    print('generating mnemonic')
     command_string = [
         'cardano-wallet', 'recovery-phrase', 'generate',
         '--size', str(size)

@@ -7,7 +7,6 @@ def result_treatment(obj,client_id):
     """Main function that receives the object from the pubsub and defines which execution function to call"""
 
     if obj[0]['cmd_id'] == 'query_tip':
-        print('Executing {}'.format(obj.pop(0)))
         main ={
             'client-id': client_id
         }
@@ -17,7 +16,6 @@ def result_treatment(obj,client_id):
         main.update(result)
 
     elif obj[0]['cmd_id'] == 'query_utxo':
-        #print('Executing {}'.format(obj.pop(0)))
         print('Executing query utxo')
         main ={
             'client-id': client_id
@@ -28,6 +26,7 @@ def result_treatment(obj,client_id):
         print(main)
     
     elif obj[0]['cmd_id'] == 'generate_new_mnemonic_phrase':
+
         print('Executing generate_new_mnemonic_phrase')
         main ={
             'client-id': client_id
@@ -38,6 +37,7 @@ def result_treatment(obj,client_id):
         main['wallet_mnemonic']=mnemonic
         print(main['wallet_mnemonic'])
 
+    print('Command executed {}'.format(obj.pop(0)))
     return main
 
 
