@@ -1,14 +1,14 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0.
 
-import argparse
-from awscrt import io, mqtt, auth, http
+from awscrt import io, mqtt, auth
 from awsiot import mqtt_connection_builder
 import sys
 import threading
 import time
 from uuid import uuid4
 import json
+from datetime import datetime
 
 import cardanowallet as cw
 
@@ -60,14 +60,15 @@ def on_resubscribe_complete(resubscribe_future):
 
 # Callback when the subscribed topic receives a message
 obj = []
-def on_message_received(topic, payload, dup, qos, retain, **kwargs): 
+def on_message_received(topic, payload): 
     messages = payload.decode('utf-8')
     messages = json.loads(messages)
     try:
         if not 'client-id' in messages:
             # Build array depending on the number of messages to be received (Number is set by the seq identifier in the json file)
             obj.append(messages)
-            print("Received message from topic '{}': {}".format(topic, obj))
+            nowTimeStamp = datetime.now()
+            print("Received message from topic '{}' : '{}' : {}".format(nowTimeStamp, topic, obj))
             # # Waits until the object lenght is equal to the sequence number in the message 
             if len(obj) == obj[0]['seq']:
                 result_json = cw.result_treatment(obj,client_id)

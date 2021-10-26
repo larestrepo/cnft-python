@@ -45,7 +45,7 @@ class TestLibrary (unittest.TestCase):
 
     if test_id==2:
         def test_create_wallet(self):
-            wallet_name = 'test5'
+            wallet_name = 'test6'
             passphrase = 'test123456'
             size = 24
             main ={

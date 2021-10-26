@@ -5,11 +5,12 @@ import wallet_lib as wallet
 def result_treatment(obj,client_id):
 
     """Main function that receives the object from the pubsub and defines which execution function to call"""
+    main ={
+        'client-id': client_id
+    }
 
     if obj[0]['cmd_id'] == 'query_tip':
-        main ={
-            'client-id': client_id
-        }
+        print('Executing query tip')
         result = lb.query_tip_exec()
         result = result.decode('utf-8')
         result = json.loads(result)
@@ -17,35 +18,32 @@ def result_treatment(obj,client_id):
 
     elif obj[0]['cmd_id'] == 'query_utxo':
         print('Executing query utxo')
-        main ={
-            'client-id': client_id
-        }
         address = obj[0]['message']['address']
         result = lb.get_transactions(address)
         main.update(result)
         print(main)
     
     elif obj[0]['cmd_id'] == 'generate_new_mnemonic_phrase':
-
         print('Executing generate_new_mnemonic_phrase')
-        main ={
-            'client-id': client_id
-        }
         size = obj[0]['message']['size']    
-        size = 24
+        #size = 24
         mnemonic = wallet.generate_mnemonic(size)
         main['wallet_mnemonic']=mnemonic
         print(main['wallet_mnemonic'])
+    
+    elif obj[0]['cmd_id'] == 'generate_wallet':
+        print('Executing generate wallet')
+        wallet_status = wallet.create_wallet(obj[0]['wallet_name'], obj[0]['passphrase'],obj[0]['mnemonic'])
+        main['wallet_status']=wallet_status
+        print(main['wallet_status'])
+        address = wallet.get_addresses(wallet_status['id'])
+        main['address']=address
 
+    elif obj[0]['cmd_id'] == 'wallet_info':
+        print('Executing wallet info')
+        wallet_info = wallet.wallet_info(obj[0]['id'])
+        main['wallet_info']=wallet_info
+    
+    
     print('Command executed {}'.format(obj.pop(0)))
     return main
-
-
-# mnemonic = subprocess.check_output([
-#     'cardano-wallet', 'recovery-phrase', 'generate'
-# ])
-
-# print(mnemonic)
-
-# s = subprocess.check_output(["echo", "Hello World!"])
-# print("s = " + str(s))
