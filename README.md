@@ -182,7 +182,19 @@ message (type: string): in case any additional parameter is needed to build the 
   "seq": 1,
   "cmd_id": "generate_new_mnemonic_phrase",
   "message": { 
-		"size": 24,
+		"size": 24
+  }
+}
+```
+3. generate wallet
+```json
+{
+  "seq": 1,
+  "cmd_id": "generate_wallet",
+  "message": {
+		"wallet_name": "wallet_name",
+		"passphrase": "passphrase",
+		"mnemonic": "mnemonic"
   }
 }
 ```

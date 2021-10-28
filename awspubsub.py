@@ -64,7 +64,7 @@ def on_message_received(topic, payload):
     messages = payload.decode('utf-8')
     messages = json.loads(messages)
     try:
-        if not 'client-id' in messages:
+        if not 'client_id' in messages:
             # Build array depending on the number of messages to be received (Number is set by the seq identifier in the json file)
             obj.append(messages)
             nowTimeStamp = datetime.now()
@@ -112,8 +112,8 @@ if __name__ == '__main__':
         clean_session=False,
         keep_alive_secs=30)
 
-    print("Connecting to {} with client ID '{}'...".format(
-        endpoint, client_id))
+    # print("Connecting to {} with client ID '{}'...".format(
+    #     endpoint, client_id))
 
     connect_future = mqtt_connection.connect()
 
@@ -122,14 +122,15 @@ if __name__ == '__main__':
     print("Connected!")
 
     # Subscribe
-    print("Subscribing to topic '{}'...".format(topic))
+    # print("Subscribing to topic '{}'...".format(topic))
     subscribe_future, packet_id = mqtt_connection.subscribe(
         topic=topic,
         qos=mqtt.QoS.AT_LEAST_ONCE,
         callback=on_message_received)
      
     subscribe_result = subscribe_future.result()
-    print("Subscribed with {}".format(str(subscribe_result['qos'])))
+    # print("Subscribed with {}".format(str(subscribe_result['qos'])))
+    print("Subscribed!")
 
     # Wait for all messages to be received.
     # This waits forever if count was set to 0.

@@ -6,7 +6,7 @@ def result_treatment(obj,client_id):
 
     """Main function that receives the object from the pubsub and defines which execution function to call"""
     main ={
-        'client-id': client_id
+        'client_id': client_id
     }
 
     if obj[0]['cmd_id'] == 'query_tip':
@@ -21,7 +21,6 @@ def result_treatment(obj,client_id):
         address = obj[0]['message']['address']
         result = lb.get_transactions(address)
         main.update(result)
-        print(main)
     
     elif obj[0]['cmd_id'] == 'generate_new_mnemonic_phrase':
         print('Executing generate_new_mnemonic_phrase')
@@ -29,13 +28,12 @@ def result_treatment(obj,client_id):
         #size = 24
         mnemonic = wallet.generate_mnemonic(size)
         main['wallet_mnemonic']=mnemonic
-        print(main['wallet_mnemonic'])
     
     elif obj[0]['cmd_id'] == 'generate_wallet':
         print('Executing generate wallet')
-        wallet_status = wallet.create_wallet(obj[0]['wallet_name'], obj[0]['passphrase'],obj[0]['mnemonic'])
+        #print(obj[0]['message']['wallet_name'])
+        wallet_status = wallet.create_wallet(obj[0]['message']['wallet_name'], obj[0]['message']['passphrase'],obj[0]['message']['mnemonic'])
         main['wallet_status']=wallet_status
-        print(main['wallet_status'])
         address = wallet.get_addresses(wallet_status['id'])
         main['address']=address
 
@@ -45,5 +43,5 @@ def result_treatment(obj,client_id):
         main['wallet_info']=wallet_info
     
     
-    print('Command executed {}'.format(obj.pop(0)))
+    obj.pop(0)
     return main
