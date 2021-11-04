@@ -12,8 +12,8 @@ class TestLibrary (unittest.TestCase):
 
             walletName = 'acdc'
             wallet01 = 'main'
-            wallet02 = 'Will_Cotrino_2'
-            quantity = 10
+            wallet02 = 'addr_test1qznxlz2nn3l8zqz00e9mx5tthf4trpc3senha8wkgg0kap80pdemwpxj47qm6tqmhxy8euajpzddxtuevprpdrum0gnsj5cuy0'
+            quantity = 400
             token = 'ADA'
             # Verify initial funds from the wallets to test
             if token=='ADA':
@@ -72,6 +72,17 @@ class TestLibrary (unittest.TestCase):
             for k, v in list_wallets.items():
                 if k==[id]:
                     wallet.delete_wallet(k)
+    if test_id==4:
+        def test_get_balance(self):
+            wallet01 = 'addr_test1qp09lnuch5vgswuxcjlta78mlp88taudhgymyktu3qy44pk8tuvg9dmy75z2dpj0e4kzw642e3hpjt937e4t3jun3l3sftz57e'
+            token = 'ADA'
+            actual_balance01 = lb.get_balance(wallet01,token)
+            print(actual_balance01)
+
+
+    if test_id==5:
+        def test_generate_nmemonic(self):
+            wallet.generate_mnemonic(24)
         
 
             

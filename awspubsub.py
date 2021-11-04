@@ -75,7 +75,9 @@ def on_message_received(topic, payload):
                 # q.put(result_json)
                 # message = q.get()
                 message = result_json
+                print('###########################')
                 print("Publishing message to topic '{}': {}".format(topic, message))
+                print('###########################')
                 message_json = json.dumps(message)
                 mqtt_connection.publish(
                     topic=topic,

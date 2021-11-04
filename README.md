@@ -198,6 +198,63 @@ message (type: string): in case any additional parameter is needed to build the 
   }
 }
 ```
+4. wallet info
+```json
+{
+  "seq": 1,
+  "cmd_id": "wallet_info",
+  "message": {
+		"id": "id"
+  }
+}
+```
+5. min fees
+```json
+{
+    "seq": 1,
+    "cmd_id": "min_fees",
+    "message": {
+            "id": "2781d44e82ad834750c8fd2654faccd2db912eaa",
+            "tx_info": {
+            "payments": [
+            {
+                "address": "addr_test1qp09lnuch5vgswuxcjlta78mlp88taudhgymyktu3qy44pk8tuvg9dmy75z2dpj0e4kzw642e3hpjt937e4t3jun3l3sftz57e",
+                "amount": {
+                    "quantity": 5000000,
+                    "unit": "lovelace"
+                },
+                "assets": null
+            }
+            ],
+            "metadata": null
+        }
+    }
+}
+```
+6. Send transactions
+```json
+{
+    "seq": 1,
+    "cmd_id": "send_transaction",
+    "passphrase": "Contraseña de gastos",
+    "message": {
+            "id": "2781d44e82ad834750c8fd2654faccd2db912eaa",
+            "tx_info": {
+            "payments": [
+            {
+                "address": "addr_test1qp09lnuch5vgswuxcjlta78mlp88taudhgymyktu3qy44pk8tuvg9dmy75z2dpj0e4kzw642e3hpjt937e4t3jun3l3sftz57e",
+                "amount": {
+                    "quantity": 5000000,
+                    "unit": "lovelace"
+                },
+                "assets": null
+            }
+            ],
+            "metadata": null
+        }
+    }
+}
+```
 
 
 

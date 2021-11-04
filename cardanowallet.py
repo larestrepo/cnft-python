@@ -39,8 +39,36 @@ def result_treatment(obj,client_id):
 
     elif obj[0]['cmd_id'] == 'wallet_info':
         print('Executing wallet info')
-        wallet_info = wallet.wallet_info(obj[0]['id'])
+        id = obj[0]['message']['id']
+        wallet_info = wallet.wallet_info(id)
         main['wallet_info']=wallet_info
+        address = wallet.get_addresses(id)
+        main['address']=address
+    
+    elif obj[0]['cmd_id'] == 'min_fees':
+        print('Executing min fees')
+        id = obj[0]['message']['id']
+        tx_info = obj[0]['message']['tx_info']
+        tx_info["time_to_live"]={
+                        "quantity": 10,
+                        "unit": "second"
+                        }
+        tx_info["withdrawal"]="self"
+        tx_result = wallet.min_fees(id,tx_info)
+        main['min_fees']= tx_result
+    
+    elif obj[0]['cmd_id'] == 'send_transaction':
+        print('Executing send transaction')
+        id = obj[0]['message']['id']
+        tx_info = obj[0]['message']['tx_info']
+        tx_info["time_to_live"]={
+                        "quantity": 60,
+                        "unit": "second"
+                        }
+        tx_info["withdrawal"]="self"
+        tx_result = wallet.send_transaction(id,tx_info)
+        main['tx_result']= tx_result
+
     
     
     obj.pop(0)
