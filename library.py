@@ -50,7 +50,7 @@ def query_tip_exec():
             'query', 'tip',
             '--testnet-magic', str(CARDANO_NETWORK_MAGIC)]
         rawResult = subprocess.check_output(command_string)
-        RawResult = rawResult.decode('utf-8')
+        rawResult = rawResult.decode('utf-8')
         return rawResult
     except:
         print('query tip error')
@@ -67,7 +67,7 @@ def build_raw_tx(TxHash, addr_origin, addr_destin, balance_origin, quantity, fee
             'transaction', 'build-raw',
             '--tx-in', TxHash,
             '--tx-out', addr_destin + '+' + str(quantity),
-            '--tx-out', addr_origin + '+' + str(balance_origin),
+            '--tx-out', addr_origin + '+' + str(balance_origin) + '+' #+ "1 e1b35fa3a3293746a4d9980491df17575987fa119287e3993c499839.AN1744",
             '--fee', str(fee),
             '--out-file', protocol_file_path + '/tx.draft']
         print(command_string)
@@ -75,7 +75,7 @@ def build_raw_tx(TxHash, addr_origin, addr_destin, balance_origin, quantity, fee
     except:
         print('Tx build raw error')
 
-def tx_min_fee(addr_origin, addr_destin):
+def tx_min_fee():
     """Calculates the expected min fees . 
         No params needed
         Return: Min fees value
@@ -192,7 +192,7 @@ def send_funds(wallet_origin, wallet_destin, quantity, token):
 
     try:
         addr_origin_tx = get_transactions(addr_origin)
-        if addr_origin_tx == {}:
+        if addr_origin_tx == {}: # not the only reason why we should print the no funds available
             print("No funds available in the origin wallet")
         else:
             if token=='ADA':
@@ -201,16 +201,20 @@ def send_funds(wallet_origin, wallet_destin, quantity, token):
             else:
                 param = 1
             #Find utxo, for the time being not handling dust. The wallet should offer to unify the utxos with small balances.
+            balance = 0
             for utxo in addr_origin_tx['transactions']:
                 for amount in utxo['amounts']:
-                    if amount['token']==token and int(amount['amount'])>= quantity*param:
-                        TxHash = utxo['hash'] + '#' + utxo['id']
-                        balance_origin = round(int(amount['amount'])- (quantity*param))
+                    if amount['token']==token: 
+                        balance = round(int(amount['amount'])) + balance
+                        if int(amount['amount'])>= quantity*param:
+                            TxHash = utxo['hash'] + '#' + utxo['id']
+                
+            balance_origin = balance - (quantity*param)
             
             #Create the tx_raw file to calculate the min fee
             build_raw_tx(TxHash, addr_origin, addr_destin, 0, 0, 0)
             #Calculate min fees based on previously tx_raw file
-            fee = tx_min_fee(addr_origin,addr_destin)
+            fee = tx_min_fee()
             fee = int(fee.decode('utf-8'))
             print(fee)
 

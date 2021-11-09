@@ -68,6 +68,26 @@ def result_treatment(obj,client_id):
         tx_info["withdrawal"]="self"
         tx_result = wallet.send_transaction(id,tx_info)
         main['tx_result']= tx_result
+    
+    elif obj[0]['cmd_id'] == 'confirm_transaction':
+        print('Executing confirmation of the transaction')
+        id = obj[0]['message']['id']
+        tx_id = obj[0]['message']['tx_id']
+        tx_result = wallet.confirm_transaction(id,tx_id)
+        main['tx_result']= tx_result
+    
+    elif obj[0]['cmd_id'] == 'mint_asset':
+        print('Executing mint asset')
+        id = obj[0]['message']['id']
+        print(id)
+        tx_info = obj[0]['message']['tx_info']
+        print('##########1',tx_info)
+        tx_info['time_to_live']={
+                        "quantity": 60,
+                        "unit": "second"
+                        }
+        tx_result = wallet.mint_token(id,tx_info)
+        main['tx_result']= tx_result
 
     
     

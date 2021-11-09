@@ -7,13 +7,13 @@ test_id = 2 # pick between test functions
 
 class TestLibrary (unittest.TestCase):
 
-    if test_id == 1:
+    if test_id == 1: #old method
         def test_send_funds(self):
 
             walletName = 'acdc'
-            wallet01 = 'main'
-            wallet02 = 'addr_test1qznxlz2nn3l8zqz00e9mx5tthf4trpc3senha8wkgg0kap80pdemwpxj47qm6tqmhxy8euajpzddxtuevprpdrum0gnsj5cuy0'
-            quantity = 400
+            wallet01 = 'addr_test1qrleh5h8gzu9knaflmqyz762cc6npw949cqhmahss73d4qw8efl2d2gxsqp95khr20ctecwdyzs950987crj69eug09svnklcz'
+            wallet02 = 'addr_test1qqxx8zw3deggjujnna32m4ap3zfm2xtwp2lcpfq0eaypwr40yzn06hf399g6wmcqce90gxqujpzu7duaenk2t2vy3gjsux46r4'
+            quantity = 18
             token = 'ADA'
             # Verify initial funds from the wallets to test
             if token=='ADA':
@@ -25,12 +25,10 @@ class TestLibrary (unittest.TestCase):
             balance01 = round(lb.get_balance(wallet01,token)[token])
             balance02 = round(lb.get_balance(wallet02,token)[token])
 
-            addr_origin = lb.wallet_to_address(wallet01)
-            addr_destin = lb.wallet_to_address(wallet02)
-            fees = lb.tx_min_fee(addr_origin,addr_destin)
+            fees = lb.tx_min_fee()
             fees = int(fees.decode('utf-8'))
 
-            send_funds = lb.send_funds(wallet01,wallet02,quantity*param,token)
+            lb.send_funds(wallet01,wallet02,quantity*param,token)
 
             new_balance01 = balance01 - quantity*param - fees
             new_balance02 = balance02 + quantity*param
@@ -43,14 +41,14 @@ class TestLibrary (unittest.TestCase):
             self.assertEqual(actual_balance01['lovelace'],new_balance01,"There must be some problem with the transaction")
             self.assertEqual(actual_balance02['lovelace'],new_balance02,"There must be some problem with the transaction")
 
-    if test_id==2:
+    if test_id==2: #new method
         def test_create_wallet(self):
-            wallet_name = 'test6'
-            passphrase = 'test123456'
+            wallet_name = 'Forminting'
+            passphrase = 'Forminting'
             size = 24
             main ={
             'client-id': 'asjfdkjfnfdnmdlk'
-        }
+            }
             mnemonic = wallet.generate_mnemonic(size)
             print(mnemonic)
 
@@ -65,24 +63,25 @@ class TestLibrary (unittest.TestCase):
             
             addresses = wallet.get_addresses(response['id'])
             print(addresses[0]['id'])
-    if test_id==3:
+    if test_id==3: # new method
         def test_delete_wallet(self):
             list_wallets=wallet.list_wallets()
             print(list_wallets)
             for k, v in list_wallets.items():
                 if k==[id]:
                     wallet.delete_wallet(k)
-    if test_id==4:
+    if test_id==4: # old method
         def test_get_balance(self):
-            wallet01 = 'addr_test1qp09lnuch5vgswuxcjlta78mlp88taudhgymyktu3qy44pk8tuvg9dmy75z2dpj0e4kzw642e3hpjt937e4t3jun3l3sftz57e'
+            wallet01 = 'addr_test1qrleh5h8gzu9knaflmqyz762cc6npw949cqhmahss73d4qw8efl2d2gxsqp95khr20ctecwdyzs950987crj69eug09svnklcz'
             token = 'ADA'
             actual_balance01 = lb.get_balance(wallet01,token)
             print(actual_balance01)
 
 
-    if test_id==5:
+    if test_id==5: #new method
         def test_generate_nmemonic(self):
             wallet.generate_mnemonic(24)
+
         
 
             

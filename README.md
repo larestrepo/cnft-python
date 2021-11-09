@@ -255,7 +255,106 @@ message (type: string): in case any additional parameter is needed to build the 
     }
 }
 ```
+7. Confirm the transaction
+```json
+{
+        "seq": 1,
+        "cmd_id": "send_transaction",
+        "message": {
+            "id": "2781d44e82ad834750c8fd2654faccd2db912eaa",
+            "tx_info": {
+                "passphrase": "I$t1234LuisTest",
+                "payments": [
+                    {
+                        "address": "addr_test1qrleh5h8gzu9knaflmqyz762cc6npw949cqhmahss73d4qw8efl2d2gxsqp95khr20ctecwdyzs950987crj69eug09svnklcz",
+                        "amount": {
+                            "quantity": 5000000,
+                            "unit": "lovelace"
+                        },
+                        "assets": null
+                    }
+                ],
+                "metadata": {
+                    "1337": {
+                        "map": [
+                            {
+                                "k": {
+                                    "string": "name"
+                                },
+                                "v": {
+                                    "string": "hello world"
+                                }
+                            },
+                            {
+                                "k": {
+                                    "string": "completed"
+                                },
+                                "v": {
+                                    "int": 0
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+}
 
+
+```
+
+8. Mint token
+```json
+{
+    "seq": 1,
+    "cmd_id": "mint_asset",
+    "message": {
+        "id": "2781d44e82ad834750c8fd2654faccd2db912eaa",
+        "tx_info": {
+        "mint_burn": [
+                        {
+                        "monetary_policy_index": 0,
+                        "asset_name": "ASSET1",
+                        "operation": {
+                            "mint": {
+                            "receiving_address": "addr_test1qzztka0rrj8tykgnrr9qn3yjkg7aawra4azcxkc9q56khna0yzn06hf399g6wmcqce90gxqujpzu7duaenk2t2vy3gjsaw8faa",
+                            "amount": {
+                                "quantity": 2,
+                                "unit": "assets"
+                            }
+                            }
+                        }
+                        }
+                    ],
+    "passphrase": "I$t1234LuisTest",
+    "metadata":{
+                        "1337": {
+                            "map": [
+                                {
+                                    "k": {
+                                        "string": "name"
+                                    },
+                                    "v": {
+                                        "string": "hello world"
+                                    }
+                                },
+                                {
+                                    "k": {
+                                        "string": "completed"
+                                    },
+                                    "v": {
+                                        "int": 0
+                                    }
+                                }
+                            ]
+                        }
+                    }
+
+}
+}
+}
+
+```
 
 
 

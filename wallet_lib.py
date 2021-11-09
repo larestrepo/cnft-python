@@ -3,6 +3,7 @@ import subprocess
 import requests
 import sys
 import os
+import shutil
 
 
 URL = 'http://localhost:8090/v2/wallets/'
@@ -46,7 +47,8 @@ def cat_files(path,name):
     return output
 
 def remove_files(path,name):
-    os.remove(path+name)
+    # os.rmdir(path+name)
+    shutil.rmtree(path+name)
 
 
 def create_wallet(name,passphrase,mnemonic):
@@ -102,7 +104,25 @@ def create_wallet(name,passphrase,mnemonic):
     # except:
     #     print('problems generating the keys or saving the files')
     # finally:
-    # # Wallet from seed mnemonic
+    # Wallet from seed mnemonic
+
+    content = ', '.join(mnemonic)
+    content = mnemonic.split()
+    path = './priv/'
+    name = name
+    if os.path.exists(path+name):
+        remove_files(path,name)
+    
+    command_string = [
+        './nmemtowallet.sh', '0', '"' + path + name + '"', content
+    ]
+
+    # command_string = [
+    #     './nmemtowallet.sh', '0', '"' + path + name + '"', content
+    # ]
+
+    output = subprocess.Popen(command_string,stdout=subprocess.PIPE)
+    
     data = {
         'name': name,
         'mnemonic_sentence':mnemonic,
@@ -136,12 +156,22 @@ def min_fees(id,data):
     request_address_url = URL + id + '/payment-fees'
     r = requests.post(request_address_url, json=data)
     r = r.json()
-    print(r)
     return r
 
 def send_transaction(id,data):
     request_address_url = URL + id + '/transactions'
     r = requests.post(request_address_url, json=data)
     r = r.json()
-    print(r)
+    return r
+
+def confirm_transaction(id,tx_id):
+    request_address_url = URL + id + '/transactions/' + tx_id
+    r = requests.get(request_address_url)
+    r = r.json()
+    return r
+
+def mint_token(id,mint_burn):
+    request_address_url = URL + id + '/assets'
+    r = requests.post(request_address_url,mint_burn)
+    r = r.json()
     return r
