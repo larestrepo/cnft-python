@@ -355,6 +355,17 @@ message (type: string): in case any additional parameter is needed to build the 
 }
 
 ```
+9. Delete wallet
+
+```json
+{
+  "seq": 1,
+  "cmd_id": "delete_wallet",
+  "message": {
+		"id": "id"
+  }
+}
+```
 
 
 

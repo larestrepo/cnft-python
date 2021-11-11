@@ -12,6 +12,7 @@ BECH32=${BECH32:=$( which bech32 )}
 [[ -z "$BECH32" ]] && { echo "bech32 cannot be found, exiting..." >&2 ; exit 127; }
 
 # Only 24-word length mnemonic is supported only
+echo "$#"
 [[ "$#" -ne 26 ]] && {
         echo "usage: $(basename $0) <change index e.g. 0/1 external/internal> <ouptut dir> <24-word length mnemonic>" >&2
         exit 127

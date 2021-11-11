@@ -161,9 +161,10 @@ def get_balance(wallet,token):
         token='lovelace'
     wallet = wallet_to_address(wallet)
     transactions = get_transactions(wallet)
+    print(transactions)
     balance_dict = {}
     if transactions == {}:
-        if token=='lovelace' or 'ADA':
+        if token=='lovelace':
             balance_dict['lovelace']=0
             balance_dict['ADA']=0
         else:
@@ -175,7 +176,7 @@ def get_balance(wallet,token):
             for amount in utxo['amounts']:
                 if amount['token']==token:
                     balance = balance + int(amount['amount'])
-        if token=='lovelace' or token=='ADA':
+        if token=='lovelace':
             balance_dict['lovelace']=balance
             balance_dict['ADA']=balance/1000000
         else:
@@ -219,7 +220,7 @@ def send_funds(wallet_origin, wallet_destin, quantity, token):
             print(fee)
 
             #Find utxo, for the time being not handling dust. The wallet should offer to unify the utxos with small balances. 
-            #Exploring cardano-wallet to handle utxo pick up.
+            #Exploring cardano-wallet to handle utxo to pick up.
             for utxo in addr_origin_tx['transactions']:
                 for amount in utxo['amounts']:
                     if amount['token']==token and int(amount['amount'])>= quantity*param + fee:

@@ -2,8 +2,9 @@ import unittest
 import library as lb
 import wallet_lib as wallet
 import time
+import utils
 
-test_id = 2 # pick between test functions
+test_id = 4 # pick between test functions
 
 class TestLibrary (unittest.TestCase):
 
@@ -11,7 +12,7 @@ class TestLibrary (unittest.TestCase):
         def test_send_funds(self):
 
             walletName = 'acdc'
-            wallet01 = 'addr_test1qrleh5h8gzu9knaflmqyz762cc6npw949cqhmahss73d4qw8efl2d2gxsqp95khr20ctecwdyzs950987crj69eug09svnklcz'
+            wallet01 = 'addr_test1qqxx8zw3deggjujnna32m4ap3zfm2xtwp2lcpfq0eaypwr40yzn06hf399g6wmcqce90gxqujpzu7duaenk2t2vy3gjsux46r4'
             wallet02 = 'addr_test1qqxx8zw3deggjujnna32m4ap3zfm2xtwp2lcpfq0eaypwr40yzn06hf399g6wmcqce90gxqujpzu7duaenk2t2vy3gjsux46r4'
             quantity = 18
             token = 'ADA'
@@ -81,6 +82,14 @@ class TestLibrary (unittest.TestCase):
     if test_id==5: #new method
         def test_generate_nmemonic(self):
             wallet.generate_mnemonic(24)
+    
+    if test_id==6:
+
+        def test_generate_wallet_from_nmemonic(self):
+            name='forminting'
+            nmemonic = wallet.generate_mnemonic(24)
+
+            utils.towallet(name,nmemonic)
 
         
 

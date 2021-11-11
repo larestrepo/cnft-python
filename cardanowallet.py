@@ -25,13 +25,11 @@ def result_treatment(obj,client_id):
     elif obj[0]['cmd_id'] == 'generate_new_mnemonic_phrase':
         print('Executing generate_new_mnemonic_phrase')
         size = obj[0]['message']['size']    
-        #size = 24
         mnemonic = wallet.generate_mnemonic(size)
         main['wallet_mnemonic']=mnemonic
     
     elif obj[0]['cmd_id'] == 'generate_wallet':
         print('Executing generate wallet')
-        #print(obj[0]['message']['wallet_name'])
         wallet_status = wallet.create_wallet(obj[0]['message']['wallet_name'], obj[0]['message']['passphrase'],obj[0]['message']['mnemonic'])
         main['wallet_status']=wallet_status
         address = wallet.get_addresses(wallet_status['id'])
@@ -88,6 +86,11 @@ def result_treatment(obj,client_id):
                         }
         tx_result = wallet.mint_token(id,tx_info)
         main['tx_result']= tx_result
+    
+    elif obj[0]['cmd_id'] == 'delete_wallet':
+        print('Executing wallet deletion')
+        id = obj[0]['message']['id']
+        wallet_info = wallet.delete_wallet(id)
 
     
     
