@@ -1,6 +1,8 @@
 import subprocess
 from decouple import config
 import json, os
+import random
+import shlex
 
 # Import params
 CARDANO_NETWORK_MAGIC = config('CARDANO_NETWORK_MAGIC')
@@ -55,7 +57,7 @@ def query_tip_exec():
     except:
         print('query tip error')
 
-def build_raw_tx(TxHash, addr_origin, addr_destin, balance_origin, quantity, fee):
+def build_raw_tx(TxHash, addr, fee):
     """
     Transaction build raw.
     :param address: TxHash of the origin address, address origin and destin
@@ -65,37 +67,41 @@ def build_raw_tx(TxHash, addr_origin, addr_destin, balance_origin, quantity, fee
         command_string = [
             CARDANO_CLI_PATH,
             'transaction', 'build-raw',
-            '--tx-in', TxHash,
-            '--tx-out', addr_destin + '+' + str(quantity),
-            '--tx-out', addr_origin + '+' + str(balance_origin) + '+' #+ "1 e1b35fa3a3293746a4d9980491df17575987fa119287e3993c499839.AN1744",
             '--fee', str(fee),
             '--out-file', protocol_file_path + '/tx.draft']
+
+        i = 0
+        for utxo in TxHash:
+            command_string.insert(3+i,'--tx-in')
+            command_string.insert(4+i,utxo[0])
+            i += 2
+        for address in addr:
+            command_string.insert(3+i,'--tx-out')
+            command_string.insert(4+i,address[0])
+            i += 2
         print(command_string)
         subprocess.check_output(command_string)
     except:
         print('Tx build raw error')
 
-def tx_min_fee():
+def tx_min_fee(tx_in_count,tx_out_count):
     """Calculates the expected min fees . 
         No params needed
         Return: Min fees value
     """
-    try:
-        command_string = [
-            CARDANO_CLI_PATH,
-            'transaction', 'calculate-min-fee',
-            '--tx-body-file', protocol_file_path + '/tx.draft',
-            '--tx-in-count', str(1),
-            '--tx-out-count', str(2),
-            '--witness-count', str(1),
-            '--testnet-magic', str(CARDANO_NETWORK_MAGIC),
-            '--protocol-params-file', protocol_file_path+'/protocol.json']
-        rawResult = subprocess.check_output(command_string)
-        rawResult = rawResult.split()
-        rawResult = rawResult[0]
-        return rawResult
-    except:
-        print('Calculation of min fees error')
+    command_string = [
+        CARDANO_CLI_PATH,
+        'transaction', 'calculate-min-fee',
+        '--tx-body-file', protocol_file_path + '/tx.draft',
+        '--tx-in-count', tx_in_count,
+        '--tx-out-count', tx_out_count,
+        '--witness-count', str(1),
+        '--testnet-magic', str(CARDANO_NETWORK_MAGIC),
+        '--protocol-params-file', protocol_file_path+'/protocol.json']
+    rawResult = subprocess.check_output(command_string)
+    rawResult = rawResult.split()
+    rawResult = rawResult[0]
+    return rawResult
 
 def get_transactions(address):
     """
@@ -124,44 +130,110 @@ def get_transactions(address):
                 transaction = {}
                 trans = line.split()
                 #if only lovelace
-                if len(trans) == 4:
-                    transaction['hash'] = trans[0]
-                    transaction['id'] = trans[1]
-                    transaction['amount'] = trans[2]
-                    token_transactions.append(transaction)
-                else:
-                    transaction['hash'] = trans[0]
-                    transaction['id'] = trans[1]
-                    transaction['amounts'] = []
+                transaction['hash'] = trans[0]
+                transaction['id'] = trans[1]
+                transaction['amounts'] = []
+                tr_amount = {}
+                tr_amount['token'] = trans[3]
+                tr_amount['amount'] = trans[2]
+                transaction['amounts'].append(tr_amount)
+                # for each token
+                for i in range(0, int((len(trans) - 4) / 3)):
                     tr_amount = {}
-                    tr_amount['token'] = trans[3]
-                    tr_amount['amount'] = trans[2]
+                    tr_amount['token'] = trans[3 + i * 3 + 3]
+                    tr_amount['amount'] = trans[3 + i * 3 + 2]
                     transaction['amounts'].append(tr_amount)
-                    # for each token
-                    for i in range(0, int((len(trans) - 4) / 3)):
-                        tr_amount = {}
-                        tr_amount['token'] = trans[3 + i * 3 + 3]
-                        tr_amount['amount'] = trans[3 + i * 3 + 2]
-                        transaction['amounts'].append(tr_amount)
-                    token_transactions.append(transaction)
-                    # add the tokens to total amounts to spend
-                    # for t in transaction['amounts']:
-                    #     if t['token'] in tokens_amounts:
-                    #         tokens_amounts[t['token']] += int(t['amount'])
-                    #     else:
-                    #         tokens_amounts[t['token']] = int(t['amount'])
+                token_transactions.append(transaction)
+                # add the tokens to total amounts to spend
+                # for t in transaction['amounts']:
+                #     if t['token'] in tokens_amounts:
+                #         tokens_amounts[t['token']] += int(t['amount'])
+                #     else:
+                #         tokens_amounts[t['token']] = int(t['amount'])
                 transactions['transactions'] = token_transactions
         return transactions
     except:
         print('Query utxo error')
 
+def utxo_selection(addr_origin_tx, token, quantity, deplete):
+    """ Function based on the coin selection algorithm to properly handle the use of utxos in the wallet. 
+    Rules are:
+    1. If any of your UTXO matches the Target it will be used.
+    2. If the "sum of all your UTXO smaller than the Target" happens to match the Target, they will be used. (This is the case if you sweep a complete wallet.)
+    3. If the "sum of all your UTXO smaller than the Target" doesn't surpass the target, the smallest UTXO greater than your Target will be used.
+    4. Else Bitcoin Core does 1000 rounds of randomly combining unspent transaction outputs until their sum is greater than or equal to the Target. If it happens to find an exact match, it stops early and uses that.
+        Otherwise it finally settles for the minimum of
+
+            the smallest UTXO greater than the Target
+            the smallest combination of UTXO it discovered in Step 4.
+
+    https://github.com/bitcoin/bitcoin/blob/3015e0bca6bc2cb8beb747873fdf7b80e74d679f/src/wallet.cpp#L1276
+    https://bitcoin.stackexchange.com/questions/1077/what-is-the-coin-selection-algorithm
+    """
+
+    #Applying the coin selection algorithm
+    minUTXO = 1000000
+    TxHash = []
+    TxHash_lower = []
+    amount_lower = []
+    TxHash_greater = []
+    amount_greater = []
+    utxo_found = False
+    transactions = addr_origin_tx['transactions'][:]
+    for utxo in addr_origin_tx['transactions']:
+        for amount in utxo['amounts']:
+            if amount['token']==token: 
+                if deplete:
+                    TxHash.append([utxo['hash'] + '#' + utxo['id']])
+                    amount_equal = int(amount['amount'])
+                    utxo_found = True
+                    break
+                if int(amount['amount']) == quantity:
+                    TxHash.append([utxo['hash'] + '#' + utxo['id']])
+                    amount_equal = int(amount['amount'])
+                    utxo_found = True
+                    break
+                elif int(amount['amount']) < quantity + minUTXO:
+                    TxHash_lower.append(utxo['hash'] + '#' + utxo['id'])
+                    amount_lower.append(int(amount['amount']))
+                elif int(amount['amount']) > quantity + minUTXO:
+                    TxHash_greater.append(utxo['hash'] + '#' + utxo['id'])
+                    amount_greater.append(int(amount['amount']))
+
+    if not utxo_found:
+        if sum(amount_lower) == quantity:
+            TxHash = TxHash_lower
+            amount_equal = sum(amount_lower)
+        elif sum(amount_lower) < quantity:
+            if amount_greater == []:
+                TxHash = []
+                amount_equal = 0
+            amount_equal = min(amount_greater)
+            index = [i for i, j in enumerate(amount_greater) if j == amount_equal][0]
+            TxHash.append([TxHash_greater[index]])
+        else:
+            utxo_array = []
+            amount_array = []
+            for _ in range(999):
+                index_random = random.randint(0,len(transactions)-1)
+                # utxo = addr_origin_tx['transactions'][index_random]
+                utxo = transactions.pop(index_random)
+                utxo_array.append([utxo['hash'] + '#' + utxo['id']])
+                for amount in utxo['amounts']:
+                    if amount['token']==token: 
+                        amount_array.append(int(amount['amount']))
+                if sum(amount_array) >= quantity + minUTXO:
+                    amount_equal = sum(amount_array)
+                    break
+            TxHash = utxo_array
+
+    return TxHash, amount_equal
 
 def get_balance(wallet,token):
     if token=='ADA':
         token='lovelace'
     wallet = wallet_to_address(wallet)
     transactions = get_transactions(wallet)
-    print(transactions)
     balance_dict = {}
     if transactions == {}:
         if token=='lovelace':
@@ -183,55 +255,74 @@ def get_balance(wallet,token):
             balance_dict[token]=balance
         return balance_dict
 
-def send_funds(wallet_origin, wallet_destin, quantity, token):
+def send_funds(wallet_origin, wallet_destin, quantity, token, deplete):
     """Sign and submit. 
         :param address: TxHash of the origin address, address origin and destin
         Return: 
     """
+    minUTXOValue = 1000000
     addr_origin = wallet_to_address(wallet_origin)
     addr_destin = wallet_to_address(wallet_destin)
+    if token=='ADA':
+        token = 'lovelace'
+        param = 1000000
+    else:
+        param = 1
+    quantity = quantity*param
+    addr_origin_tx = get_transactions(addr_origin)
+    balance = get_balance(addr_origin,token)
 
-    try:
-        addr_origin_tx = get_transactions(addr_origin)
-        if addr_origin_tx == {}: # not the only reason why we should print the no funds available
+    addr_zero = []
+    if deplete: 
+        quantity_calculated = balance['lovelace']
+    else:
+        quantity_calculated = quantity + 200000
+        addr_zero.append([addr_origin + '+' + str(0)])
+    
+    addr_zero.append([addr_destin + '+' + str(0)])
+    
+    if addr_origin_tx == {} or balance['lovelace'] < quantity_calculated:
+        print("No funds available in the origin wallet")
+    elif quantity < minUTXOValue:
+        print('OutputTooSmallUTxo')
+    else:
+        TxHash_in, amount_equal = utxo_selection(addr_origin_tx,token,quantity_calculated,deplete)
+
+        if TxHash_in==[]:
             print("No funds available in the origin wallet")
         else:
-            if token=='ADA':
-                token = 'lovelace'
-                param = 1000000
-            else:
-                param = 1
-            #Find utxo, for the time being not handling dust. The wallet should offer to unify the utxos with small balances.
-            balance = 0
-            for utxo in addr_origin_tx['transactions']:
-                for amount in utxo['amounts']:
-                    if amount['token']==token: 
-                        balance = round(int(amount['amount'])) + balance
-                        if int(amount['amount'])>= quantity*param:
-                            TxHash = utxo['hash'] + '#' + utxo['id']
-                
-            balance_origin = balance - (quantity*param)
-            
+            ###########################
+            # Section to calculate min fees
+            ###########################
             #Create the tx_raw file to calculate the min fee
-            build_raw_tx(TxHash, addr_origin, addr_destin, 0, 0, 0)
+            build_raw_tx(TxHash_in, addr_zero, 0)
             #Calculate min fees based on previously tx_raw file
-            fee = tx_min_fee()
+            fee = tx_min_fee(str(len(TxHash_in)),str(len(addr_zero)))
             fee = int(fee.decode('utf-8'))
             print(fee)
+            
+            ###########################
+            # Section to build the actual transaction including fees
+            ###########################
+            addr = []
+            if deplete: 
+                # quantity_fee = balance['lovelace'] - fee
+                TxHash_in, amount_equal = utxo_selection(addr_origin_tx,token,0, deplete)
+            else:
+                quantity_fee = quantity + fee
+                TxHash_in, amount_equal = utxo_selection(addr_origin_tx,token,quantity_fee,deplete)
+                final_balance = amount_equal - quantity_fee
+                addr.append([addr_origin + '+' + str(int(final_balance))])
 
-            #Find utxo, for the time being not handling dust. The wallet should offer to unify the utxos with small balances. 
-            #Exploring cardano-wallet to handle utxo to pick up.
-            for utxo in addr_origin_tx['transactions']:
-                for amount in utxo['amounts']:
-                    if amount['token']==token and int(amount['amount'])>= quantity*param + fee:
-                        TxHash = utxo['hash'] + '#' + utxo['id']
-                        balance_origin = round(int(amount['amount'])- (quantity*param) - fee)
-
+            addr.append([addr_destin + '+' + str(int(quantity))])
+            
+            
             #Create the tx_raw file with the fees included
-            build_raw_tx(TxHash, addr_origin, addr_destin, balance_origin, quantity*param, fee)
+            
+            build_raw_tx(TxHash_in, addr, fee)
 
             print("################################")
-            print("Sending '{}' from {} to {}. Fees are: {}".format(quantity*param, wallet_origin, wallet_destin,fee))
+            print("Sending '{}' from {} to {}. Fees are: {}".format(quantity, wallet_origin, wallet_destin,fee))
             print("################################")
 
             # Sign the transaction based on tx_raw file.
@@ -254,5 +345,3 @@ def send_funds(wallet_origin, wallet_destin, quantity, token):
                 
             rawResult= subprocess.check_output(command_string)
             print(rawResult)
-    except:
-        print('Could not send the transaction')

@@ -4,7 +4,7 @@ import wallet_lib as wallet
 import time
 import utils
 
-test_id = 4 # pick between test functions
+test_id = 1 # pick between test functions
 
 class TestLibrary (unittest.TestCase):
 
@@ -12,35 +12,13 @@ class TestLibrary (unittest.TestCase):
         def test_send_funds(self):
 
             walletName = 'acdc'
-            wallet01 = 'addr_test1qqxx8zw3deggjujnna32m4ap3zfm2xtwp2lcpfq0eaypwr40yzn06hf399g6wmcqce90gxqujpzu7duaenk2t2vy3gjsux46r4'
-            wallet02 = 'addr_test1qqxx8zw3deggjujnna32m4ap3zfm2xtwp2lcpfq0eaypwr40yzn06hf399g6wmcqce90gxqujpzu7duaenk2t2vy3gjsux46r4'
-            quantity = 18
+            wallet01 = 'main'
+            wallet02 = 'addr_test1qza83ygkg0kn5pzaya8wakmsd3j5678v3l3yju9sng7r6ad0yzn06hf399g6wmcqce90gxqujpzu7duaenk2t2vy3gjskjmdyn'
+            quantity = 6
+            deplete = False
             token = 'ADA'
-            # Verify initial funds from the wallets to test
-            if token=='ADA':
-                token = 'lovelace'
-                param = 1000000
-            else:
-                param = 1
 
-            balance01 = round(lb.get_balance(wallet01,token)[token])
-            balance02 = round(lb.get_balance(wallet02,token)[token])
-
-            fees = lb.tx_min_fee()
-            fees = int(fees.decode('utf-8'))
-
-            lb.send_funds(wallet01,wallet02,quantity*param,token)
-
-            new_balance01 = balance01 - quantity*param - fees
-            new_balance02 = balance02 + quantity*param
-            # 60 seconds to allow the blockchain to process and confirm the transaction
-            time.sleep(60)
-            actual_balance01 = lb.get_balance(wallet01,token)
-            actual_balance02 = lb.get_balance(wallet02,token)
-
-            #self.assertTrue (type(test_transactions) is dict)
-            self.assertEqual(actual_balance01['lovelace'],new_balance01,"There must be some problem with the transaction")
-            self.assertEqual(actual_balance02['lovelace'],new_balance02,"There must be some problem with the transaction")
+            lb.send_funds(wallet01,wallet02,quantity,token,deplete)
 
     if test_id==2: #new method
         def test_create_wallet(self):
@@ -73,7 +51,7 @@ class TestLibrary (unittest.TestCase):
                     wallet.delete_wallet(k)
     if test_id==4: # old method
         def test_get_balance(self):
-            wallet01 = 'addr_test1qrleh5h8gzu9knaflmqyz762cc6npw949cqhmahss73d4qw8efl2d2gxsqp95khr20ctecwdyzs950987crj69eug09svnklcz'
+            wallet01 = 'acdc'
             token = 'ADA'
             actual_balance01 = lb.get_balance(wallet01,token)
             print(actual_balance01)
