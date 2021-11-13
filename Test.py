@@ -1,4 +1,6 @@
 import unittest
+
+from requests import NullHandler
 import library as lb
 import wallet_lib as wallet
 import time
@@ -13,17 +15,49 @@ class TestLibrary (unittest.TestCase):
 
             walletName = 'acdc'
             wallet01 = 'main'
-            wallet02 = 'addr_test1qza83ygkg0kn5pzaya8wakmsd3j5678v3l3yju9sng7r6ad0yzn06hf399g6wmcqce90gxqujpzu7duaenk2t2vy3gjskjmdyn'
-            quantity = 6
+            wallet02 = 'addr_test1qzfxu7zhedzn86v95k84m7t94z3eek99al4xlyahkuw8ammjkcctzvtrmt0chuqgaphal08kaqhn0gn295v7wefe95eqvh5ndl'
+            quantity = 3
             deplete = False
             token = 'ADA'
+            # metadata = {
+            #     "1337": {
+            #         "name": "hello world",
+            #         "completed": 0
+            #     }
+            # }
+            metadata = {}
+            params = {
+                "Tx": {
+                    "Max": False,
+                    "token": "ADA",
+                    "assets":[
+                        {"name":"lovelace",
+                        "target":3_000_000,
+                        },
+                        ],
+                },
+                "metadata": metadata,
+                "mint": {
+                    "Flag": True,
+                    "with_quantity": True,
+                    "NFT_handle": False,
+                    "tokens_info":[
+                        {
+                            "name": "test_token",
+                            "amount": 20,
+                            "PolicyID": None,
+                        }
+                    ]
+                }
+                
+            }
 
-            lb.send_funds(wallet01,wallet02,quantity,token,deplete)
+            lb.transactions(wallet01,wallet02,params)
 
     if test_id==2: #new method
         def test_create_wallet(self):
-            wallet_name = 'Forminting'
-            passphrase = 'Forminting'
+            wallet_name = 'Mint_wallet'
+            passphrase = 'Mint_wallet'
             size = 24
             main ={
             'client-id': 'asjfdkjfnfdnmdlk'
@@ -68,6 +102,12 @@ class TestLibrary (unittest.TestCase):
             nmemonic = wallet.generate_mnemonic(24)
 
             utils.towallet(name,nmemonic)
+    
+    if test_id==7:
+        def test_minting(self):
+            wallet_name = 'Mint_wallet'
+            utils.create_minting_policy(wallet_name)
+
 
         
 
