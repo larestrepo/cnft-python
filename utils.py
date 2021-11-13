@@ -1,6 +1,7 @@
 import os
 import subprocess
 from decouple import config
+import json
 
 def save_files(path,name,content):
     if not os.path.exists(path):
@@ -46,11 +47,11 @@ def towallet(name,mnemonic):
         output2 = subprocess.Popen(command_string,stdin=output.stdout,stdout=subprocess.PIPE)
         output.stdout.close()
 
-        # Delete file mnemonic
-        remove_files(path,'temp_mnemonic')
         content = output2.communicate()[0].decode('utf-8')
         # Save temp private keys files
         save_files(path,'root.prv',str(content))
+        # Delete file mnemonic
+        remove_files(path,'temp_mnemonic')
 
         output = cat_files(path,'root.prv')
         # Generate stake key
@@ -156,3 +157,38 @@ def towallet(name,mnemonic):
 
     except:
         print('problems generating the keys or saving the files')
+
+def create_minting_policy(name):
+    path = './priv/' + name + '/' + 'minting'
+    if not os.path.exists(path):
+        os.makedirs(path)
+    
+    # Generate key pairs for minting associated to specific policy script
+    command_string = [
+        'cardano-cli', 'address', 'key-gen', '--verification-key-file', path + 'policy.vkey',
+    '--signing-key-file', path + 'policy.skey'
+    ]
+    subprocess.run(command_string)
+
+    #Create policy script and save file policy.script
+    command_string = [
+    'cardano-cli', 'address', 'key-hash', '--payment-verification-key-file', path + 'policy.vkey'
+    ]
+    output = subprocess.Popen(command_string,stdout=subprocess.PIPE)
+    policy_script = {}
+    policy_script['scripts']={
+        "keyHash": str(output.communicate()[0].decode('utf-8')),
+        "type": "sig"
+    }
+
+    with open(path + '/' + 'policy.script','w') as file:
+        json.dump(policy_script, file,indent=4,ensure_ascii=False)
+
+    # Generate policyID from the policy script file
+    command_string = [
+    'cardano-cli', 'transaction', 'policyid', '--script-file', path + 'policy.script'
+    ]
+    output = subprocess.Popen(command_string,stdout=subprocess.PIPE)
+    policyID = output.communicate()[0].decode('utf-8')
+    save_files(path,'policyID',str(policyID))
+    return policyID

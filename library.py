@@ -2,7 +2,7 @@ import subprocess
 from decouple import config
 import json, os
 import random
-import shlex
+import utils
 
 # Import params
 CARDANO_NETWORK_MAGIC = config('CARDANO_NETWORK_MAGIC')
@@ -15,11 +15,11 @@ if CARDANO_NETWORK == 'mainnet':
 with open('./config_file.json') as file:
     params=json.load(file)
 
-protocol_file_path = params['wallets']['protocol']
-if not os.path.exists(protocol_file_path):
-    os.makedirs(protocol_file_path)
+transaction_path_file = params['node']['transactions']
+if not os.path.exists(transaction_path_file):
+    os.makedirs(transaction_path_file)
 
-keys_file_path = params['wallets']['keys_path']
+keys_file_path = params['node']['keys_path']
 if not os.path.exists(keys_file_path):
     os.makedirs(keys_file_path)
 
@@ -29,17 +29,25 @@ def wallet_to_address(wallet):
             wallet = file.readlines(1)[0]
     return wallet
 
-try:
+def save_metadata(metadata):
+    if metadata == {}:
+        metadata_json_file = ''
+    else:
+        with open(transaction_path_file + '/' + 'metadata.json','w') as file:
+            json.dump(metadata, file,indent=4,ensure_ascii=False)
+        metadata_json_file = transaction_path_file + '/' + 'metadata.json'
+
+    return metadata_json_file
+
+def query_protocol():
     """Executes query protocol parameters.
     Return: json file with protocol.json parameters"""
     command_string = [
         CARDANO_CLI_PATH,
         'query', 'protocol-parameters',
         '--testnet-magic', str(CARDANO_NETWORK_MAGIC),
-        '--out-file', protocol_file_path+'/protocol.json']
+        '--out-file', transaction_path_file +'/protocol.json']
     subprocess.check_output(command_string)
-except:
-    print('query protocol error')
 
 def query_tip_exec():
     """Executes query tip. 
@@ -57,7 +65,7 @@ def query_tip_exec():
     except:
         print('query tip error')
 
-def build_raw_tx(TxHash, addr, fee):
+def build_raw_tx(TxHash, addr, fee, metadata_json_file, mint,script):
     """
     Transaction build raw.
     :param address: TxHash of the origin address, address origin and destin
@@ -68,7 +76,7 @@ def build_raw_tx(TxHash, addr, fee):
             CARDANO_CLI_PATH,
             'transaction', 'build-raw',
             '--fee', str(fee),
-            '--out-file', protocol_file_path + '/tx.draft']
+            '--out-file', transaction_path_file + '/tx.draft']
 
         i = 0
         for utxo in TxHash:
@@ -79,6 +87,15 @@ def build_raw_tx(TxHash, addr, fee):
             command_string.insert(3+i,'--tx-out')
             command_string.insert(4+i,address[0])
             i += 2
+        if metadata_json_file != '':
+            command_string.insert(3+i, '--metadata-json-file')
+            command_string.insert(4+i, metadata_json_file)
+            i += 2
+        if mint != '':
+            command_string.insert(3+i, '--mint')
+            command_string.insert(4+i, mint)
+            command_string.insert(5+i, '--minting-script-file')
+            command_string.insert(4+i, script)
         print(command_string)
         subprocess.check_output(command_string)
     except:
@@ -92,12 +109,12 @@ def tx_min_fee(tx_in_count,tx_out_count):
     command_string = [
         CARDANO_CLI_PATH,
         'transaction', 'calculate-min-fee',
-        '--tx-body-file', protocol_file_path + '/tx.draft',
+        '--tx-body-file', transaction_path_file + '/tx.draft',
         '--tx-in-count', tx_in_count,
         '--tx-out-count', tx_out_count,
         '--witness-count', str(1),
         '--testnet-magic', str(CARDANO_NETWORK_MAGIC),
-        '--protocol-params-file', protocol_file_path+'/protocol.json']
+        '--protocol-params-file', transaction_path_file+'/protocol.json']
     rawResult = subprocess.check_output(command_string)
     rawResult = rawResult.split()
     rawResult = rawResult[0]
@@ -255,7 +272,7 @@ def get_balance(wallet,token):
             balance_dict[token]=balance
         return balance_dict
 
-def send_funds(wallet_origin, wallet_destin, quantity, token, deplete):
+def transactions(wallet_origin, wallet_destin, params):
     """Sign and submit. 
         :param address: TxHash of the origin address, address origin and destin
         Return: 
@@ -263,85 +280,102 @@ def send_funds(wallet_origin, wallet_destin, quantity, token, deplete):
     minUTXOValue = 1000000
     addr_origin = wallet_to_address(wallet_origin)
     addr_destin = wallet_to_address(wallet_destin)
-    if token=='ADA':
-        token = 'lovelace'
-        param = 1000000
-    else:
-        param = 1
-    quantity = quantity*param
     addr_origin_tx = get_transactions(addr_origin)
-    balance = get_balance(addr_origin,token)
-
     addr_zero = []
-    if deplete: 
-        quantity_calculated = balance['lovelace']
+    addr_zero.append([addr_origin + '+' + str(0)])
+    balance = []
+    for assets in params['Tx']['assets']:
+            balance.append(get_balance(addr_origin,assets['name']))
+    deplete = params['Tx']['Max']
+    if deplete:
+        print('pending')
+        quantity_calculated = balance[0]['lovelace']
+        TxHash_in, amount_equal = utxo_selection(addr_origin_tx,token,0, deplete)
     else:
-        quantity_calculated = quantity + 200000
-        addr_zero.append([addr_origin + '+' + str(0)])
-    
-    addr_zero.append([addr_destin + '+' + str(0)])
-    
-    if addr_origin_tx == {} or balance['lovelace'] < quantity_calculated:
+        target = params['Tx']['assets'][0]['target']
+        target_calculated = target + 200000
+
+
+    if addr_origin_tx == {} or balance[0]['lovelace'] < target_calculated:
         print("No funds available in the origin wallet")
-    elif quantity < minUTXOValue:
+    elif target < minUTXOValue:
         print('OutputTooSmallUTxo')
     else:
-        TxHash_in, amount_equal = utxo_selection(addr_origin_tx,token,quantity_calculated,deplete)
-
-        if TxHash_in==[]:
-            print("No funds available in the origin wallet")
+        TxHash_in, amount_equal = utxo_selection(addr_origin_tx,'lovelace',target_calculated,deplete)
+    
+    if TxHash_in==[]:
+        print("No funds available in the origin wallet")
+    else:
+        metadata = params['metadata']
+        if metadata == {}:
+            metadata_json_file = ''
         else:
-            ###########################
-            # Section to calculate min fees
-            ###########################
-            #Create the tx_raw file to calculate the min fee
-            build_raw_tx(TxHash_in, addr_zero, 0)
-            #Calculate min fees based on previously tx_raw file
-            fee = tx_min_fee(str(len(TxHash_in)),str(len(addr_zero)))
-            fee = int(fee.decode('utf-8'))
-            print(fee)
+            metadata_json_file = save_metadata(metadata)
+        mint = []
+        if params['mint']['Flag']:
+            # Minting tokens
             
-            ###########################
-            # Section to build the actual transaction including fees
-            ###########################
-            addr = []
-            if deplete: 
-                # quantity_fee = balance['lovelace'] - fee
-                TxHash_in, amount_equal = utxo_selection(addr_origin_tx,token,0, deplete)
-            else:
-                quantity_fee = quantity + fee
-                TxHash_in, amount_equal = utxo_selection(addr_origin_tx,token,quantity_fee,deplete)
-                final_balance = amount_equal - quantity_fee
-                addr.append([addr_origin + '+' + str(int(final_balance))])
+            tokenamount = params['mint']['tokens_info'][0]['amount']
+            tokenname = params['mint']['tokens_info'][0]['name']
 
-            addr.append([addr_destin + '+' + str(int(quantity))])
+            if params['mint']['tokens_info'][0]['PolicyID'] == None:
+                # Create keys and policy IDs
+                policyid = utils.create_minting_policy(wallet_origin)
+            script_path = '.priv/' + wallet_origin + 'minting/' + 'policy.script'
+            mint.append([str(tokenamount) + ' ' + str(policyid) + '.' + str(tokenname)])
+            addr_zero.append([addr_destin + '+' + str(0) + '+' + str(tokenamount) + ' ' + str(policyid) + '.' + str(tokenname)])
+        ###########################
+        # Section to calculate min fees
+        ###########################
+        #Create the tx_raw file to calculate the min fee
+        build_raw_tx(TxHash_in, addr_zero, 0, metadata_json_file, mint, script_path)
+        #Calculate min fees based on previously tx_raw file
+        fee = tx_min_fee(str(len(TxHash_in)),str(len(addr_zero)))
+        fee = int(fee.decode('utf-8'))
+        print(fee)
             
+        ###########################
+        # Section to build the actual transaction including fees
+        ###########################
+        addr = []
+        if deplete: 
+            # quantity_fee = balance['lovelace'] - fee
+            TxHash_in, amount_equal = utxo_selection(addr_origin_tx,token,0, deplete)
+        else:
+            target_fee = target + fee
+            TxHash_in, amount_equal = utxo_selection(addr_origin_tx,'lovelace',target_fee,deplete)
+            final_balance = amount_equal - target_fee
+            addr.append([addr_origin + '+' + str(int(final_balance))])
+
+        addr.append([addr_destin + '+' + str(int(target))])
+
+        #Create the tx_raw file with the fees included
+        
+        build_raw_tx(TxHash_in, addr, fee, metadata_json_file, mint, script_path)
+
+        print("################################")
+        print("Sending '{}' from {} to {}. Fees are: {}".format(target, wallet_origin, wallet_destin,fee))
+        print("################################")
+
+        # Sign the transaction based on tx_raw file.
+        # For the time being not handling multi-witness
+        command_string = [
+            CARDANO_CLI_PATH,
+            'transaction', 'sign',
+            '--tx-body-file', transaction_path_file + '/tx.draft',
+            '--signing-key-file', keys_file_path + '/' + wallet_origin + '/' + wallet_origin + '.payment.skey',
+            '--testnet-magic', str(CARDANO_NETWORK_MAGIC),
+            '--out-file', transaction_path_file + '/tx.signed']
+        subprocess.check_output(command_string)
+
+        # Submit the transaction
+        command_string = [
+            CARDANO_CLI_PATH,
+            'transaction', 'submit',
+            '--tx-file', transaction_path_file + '/tx.signed',
+            '--testnet-magic', str(CARDANO_NETWORK_MAGIC)]
             
-            #Create the tx_raw file with the fees included
-            
-            build_raw_tx(TxHash_in, addr, fee)
+        rawResult= subprocess.check_output(command_string)
+        print(rawResult)
 
-            print("################################")
-            print("Sending '{}' from {} to {}. Fees are: {}".format(quantity, wallet_origin, wallet_destin,fee))
-            print("################################")
-
-            # Sign the transaction based on tx_raw file.
-            # For the time being not handling multi-witness
-            command_string = [
-                CARDANO_CLI_PATH,
-                'transaction', 'sign',
-                '--tx-body-file', protocol_file_path + '/tx.draft',
-                '--signing-key-file', keys_file_path + '/' + wallet_origin + '/' + wallet_origin + '.payment.skey',
-                '--testnet-magic', str(CARDANO_NETWORK_MAGIC),
-                '--out-file', protocol_file_path + '/tx.signed']
-            subprocess.check_output(command_string)
-
-            # Submit the transaction
-            command_string = [
-                CARDANO_CLI_PATH,
-                'transaction', 'submit',
-                '--tx-file', protocol_file_path + '/tx.signed',
-                '--testnet-magic', str(CARDANO_NETWORK_MAGIC)]
-                
-            rawResult= subprocess.check_output(command_string)
-            print(rawResult)
+# def minting(wallet_origin, wallet_destin,assets):
