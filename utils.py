@@ -3,6 +3,12 @@ import subprocess
 from decouple import config
 import json
 
+with open('./config_file.json') as file:
+    params=json.load(file)
+keys_file_path = params['node']['keys_path']
+if not os.path.exists(keys_file_path):
+    os.makedirs(keys_file_path)
+
 def save_files(path,name,content):
     if not os.path.exists(path):
         os.makedirs(path)
@@ -24,23 +30,19 @@ def remove_files(path,name):
     # shutil.rmtree(path+name)
 
 
-def towallet(name,mnemonic):
+def towallet(wallet_id,mnemonic):
     try:
         ################################
         # generating additional keys before the actual creation
         ################################
         #Save temp mnemonic
         content = ' '.join(mnemonic)
-        path = './priv/' + name + '/'
-        name = 'temp_mnemonic'
-        save_files(path, 'temp_mnemonic', content)
+        path = keys_file_path + '/' + wallet_id + '/'
+        temp_mnemonic = wallet_id + '.temp_mnemonic'
+        save_files(path, temp_mnemonic, content)
 
         # Generate master key
-        output = cat_files(path,'temp_mnemonic')
-        # command_string = [
-        #     'cat', 'temp_mnemonic'
-        # ]
-        # output = subprocess.Popen(command_string, stdout=subprocess.PIPE)
+        output = cat_files(path,temp_mnemonic)
         command_string = [
             'cardano-address', 'key', 'from-recovery-phrase', 'Shelley'
         ]
@@ -49,11 +51,11 @@ def towallet(name,mnemonic):
 
         content = output2.communicate()[0].decode('utf-8')
         # Save temp private keys files
-        save_files(path,'root.prv',str(content))
+        save_files(path,wallet_id + '.root.prv',str(content))
         # Delete file mnemonic
-        remove_files(path,'temp_mnemonic')
+        remove_files(path, temp_mnemonic)
 
-        output = cat_files(path,'root.prv')
+        output = cat_files(path, wallet_id + '.root.prv')
         # Generate stake key
         command_string = [
             'cardano-address', 'key', 'child', '1852H/1815H/0H/2/0'
@@ -61,7 +63,7 @@ def towallet(name,mnemonic):
         output3 = subprocess.Popen(command_string, stdin=output.stdout,stdout=subprocess.PIPE)
         output.stdout.close()
         # Generate payment key
-        output = cat_files(path,'root.prv')
+        output = cat_files(path, wallet_id + '.root.prv')
         command_string = [
             'cardano-address', 'key', 'child', '1852H/1815H/0H/0/0'
         ]
@@ -73,83 +75,83 @@ def towallet(name,mnemonic):
         output4.stdout.close()
 
         # Save payment key into file
-        save_files(path,'stake.xprv',str(stake_xprv))
-        save_files(path,'payment.xprv',str(payment_xprv))
+        save_files(path, wallet_id + '.stake.xprv',str(stake_xprv))
+        save_files(path,wallet_id + '.payment.xprv',str(payment_xprv))
 
         # Generate payment verification key xpub
-        output = cat_files(path,'payment.xprv')
+        output = cat_files(path,wallet_id + '.payment.xprv')
         command_string = [
             'cardano-address', 'key', 'public', '--with-chain-code'
         ]
         output1 = subprocess.Popen(command_string, stdin=output.stdout,stdout=subprocess.PIPE)
         output.stdout.close()
         payment_xpub = output1.communicate()[0].decode('utf-8')
-        save_files(path,'payment.xpub',str(payment_xpub))
+        save_files(path, wallet_id + '.payment.xpub',str(payment_xpub))
         CARDANO_NETWORK = config('CARDANO_NETWORK')
 
         # Generate payment address from verification key
-        output = cat_files(path,'payment.xprv')
+        output = cat_files(path, wallet_id + '.payment.xprv')
         command_string = [
             'cardano-address', 'address', 'payment', '--network-tag', CARDANO_NETWORK,
         ]
         output1 = subprocess.Popen(command_string,stdin=output.stdout,stdout=subprocess.PIPE)
         output.stdout.close()
         payment_addr = output1.communicate()[0].decode('utf-8')
-        save_files(path,'payment.addr',str(payment_addr))
+        save_files(path, wallet_id + '.payment.addr',str(payment_addr))
 
         # Convert cardano-addresses extended signing keys to corresponding Shelley-format keys.
 
         command_string = [
             'cardano-cli', 'key', 'convert-cardano-address-key', '--shelley-payment-key', '--signing-key-file',
-            path + 'payment.xprv', '--out-file', path + 'payment.skey'
+            path + wallet_id + '.payment.xprv', '--out-file', path + wallet_id + '.payment.skey'
         ]
         subprocess.run(command_string)
         command_string = [
             'cardano-cli', 'key', 'convert-cardano-address-key', '--shelley-stake-key', '--signing-key-file',
-            path + 'stake.xprv', '--out-file', path + 'stake.skey'
+            path + wallet_id + '.stake.xprv', '--out-file', path + wallet_id + '.stake.skey'
         ]
         subprocess.run(command_string)
 
         # Get verification keys from signing keys.
         command_string = [
-            'cardano-cli', 'key', 'verification-key', '--signing-key-file', path + 'stake.skey',
-            '--verification-key-file', path + 'stake.evkey'
+            'cardano-cli', 'key', 'verification-key', '--signing-key-file', path + wallet_id + '.stake.skey',
+            '--verification-key-file', path + wallet_id + '.stake.evkey'
         ]
         subprocess.run(command_string)
         command_string = [
-            'cardano-cli', 'key', 'verification-key', '--signing-key-file', path + 'payment.skey',
-            '--verification-key-file', path + 'payment.evkey'
+            'cardano-cli', 'key', 'verification-key', '--signing-key-file', path + wallet_id + '.payment.skey',
+            '--verification-key-file', path + wallet_id + '.payment.evkey'
         ]
         subprocess.run(command_string)
 
         # Get non-extended verification keys from extended verification keys.
         command_string = [
-            'cardano-cli', 'key', 'non-extended-key', '--extended-verification-key-file', path + 'stake.evkey',
-            '--verification-key-file', path + 'stake.vkey'
+            'cardano-cli', 'key', 'non-extended-key', '--extended-verification-key-file', path + wallet_id + '.stake.evkey',
+            '--verification-key-file', path + wallet_id + '.stake.vkey'
                 ]
         subprocess.run(command_string)
         command_string = [
-            'cardano-cli', 'key', 'non-extended-key', '--extended-verification-key-file', path + 'payment.evkey',
-            '--verification-key-file', path + 'payment.vkey'
+            'cardano-cli', 'key', 'non-extended-key', '--extended-verification-key-file', path + wallet_id + '.payment.evkey',
+            '--verification-key-file', path + wallet_id + '.payment.vkey'
                 ]
         subprocess.run(command_string)
 
         # Build stake and payment addresses
         CARDANO_NETWORK_MAGIC = config('CARDANO_NETWORK_MAGIC')
         command_string = [
-            'cardano-cli', 'stake-address', 'build', '--stake-verification-key-file', path + 'stake.vkey',
-            '--testnet-magic', CARDANO_NETWORK_MAGIC, '--out-file', path + 'stake.addr'
+            'cardano-cli', 'stake-address', 'build', '--stake-verification-key-file', path + wallet_id + '.stake.vkey',
+            '--testnet-magic', CARDANO_NETWORK_MAGIC, '--out-file', path + wallet_id + '.stake.addr'
                 ]
         subprocess.run(command_string)
         command_string = [
-            'cardano-cli', 'address', 'build', '--payment-verification-key-file', path + 'payment.vkey',
-            '--testnet-magic', CARDANO_NETWORK_MAGIC, '--out-file', path + 'payment.addr'
+            'cardano-cli', 'address', 'build', '--payment-verification-key-file', path + wallet_id + '.payment.vkey',
+            '--testnet-magic', CARDANO_NETWORK_MAGIC, '--out-file', path + wallet_id + '.payment.addr'
             ]
         subprocess.run(command_string)
         command_string = [
-            'cardano-cli', 'address', 'build', '--payment-verification-key-file', path + 'payment.vkey',
-            '--stake-verification-key-file', path + 'stake.vkey',
-            '--testnet-magic', CARDANO_NETWORK_MAGIC, '--out-file', path + 'base.addr'
+            'cardano-cli', 'address', 'build', '--payment-verification-key-file', path + wallet_id + '.payment.vkey',
+            '--stake-verification-key-file', path + wallet_id + '.stake.vkey',
+            '--testnet-magic', CARDANO_NETWORK_MAGIC, '--out-file', path + wallet_id + '.base.addr'
             ]
         subprocess.run(command_string)
 
@@ -158,37 +160,38 @@ def towallet(name,mnemonic):
     except:
         print('problems generating the keys or saving the files')
 
-def create_minting_policy(name):
-    path = './priv/' + name + '/' + 'minting'
+def create_minting_policy(wallet_id):
+    path = keys_file_path + '/' + wallet_id + '/' + 'minting/'
     if not os.path.exists(path):
         os.makedirs(path)
     
     # Generate key pairs for minting associated to specific policy script
     command_string = [
-        'cardano-cli', 'address', 'key-gen', '--verification-key-file', path + 'policy.vkey',
-    '--signing-key-file', path + 'policy.skey'
+        'cardano-cli', 'address', 'key-gen', '--verification-key-file', path + wallet_id + '.policy.vkey',
+    '--signing-key-file', path + wallet_id + '.policy.skey'
     ]
     subprocess.run(command_string)
 
     #Create policy script and save file policy.script
     command_string = [
-    'cardano-cli', 'address', 'key-hash', '--payment-verification-key-file', path + 'policy.vkey'
+    'cardano-cli', 'address', 'key-hash', '--payment-verification-key-file', path + wallet_id + '.policy.vkey'
     ]
     output = subprocess.Popen(command_string,stdout=subprocess.PIPE)
-    policy_script = {}
-    policy_script['scripts']={
-        "keyHash": str(output.communicate()[0].decode('utf-8')),
+
+    policy_script = {
+        "keyHash": str(output.communicate()[0].decode('utf-8')).rstrip(),
         "type": "sig"
     }
 
-    with open(path + '/' + 'policy.script','w') as file:
-        json.dump(policy_script, file,indent=4,ensure_ascii=False)
+
+    with open(path + '/' + wallet_id + '.policy.script','w') as file:
+        json.dump(policy_script, file, indent=4, ensure_ascii=True)
 
     # Generate policyID from the policy script file
     command_string = [
-    'cardano-cli', 'transaction', 'policyid', '--script-file', path + 'policy.script'
+    'cardano-cli', 'transaction', 'policyid', '--script-file', path + wallet_id + '.policy.script'
     ]
     output = subprocess.Popen(command_string,stdout=subprocess.PIPE)
-    policyID = output.communicate()[0].decode('utf-8')
-    save_files(path,'policyID',str(policyID))
+    policyID = str(output.communicate()[0].decode('utf-8')).rstrip()
+    save_files(path, wallet_id + '.policyID',str(policyID))
     return policyID

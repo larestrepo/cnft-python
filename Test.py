@@ -14,7 +14,7 @@ class TestLibrary (unittest.TestCase):
         def test_send_funds(self):
 
             walletName = 'acdc'
-            wallet01 = 'main'
+            wallet01 = 'addr_test1qzfxu7zhedzn86v95k84m7t94z3eek99al4xlyahkuw8ammjkcctzvtrmt0chuqgaphal08kaqhn0gn295v7wefe95eqvh5ndl'
             wallet02 = 'addr_test1qzfxu7zhedzn86v95k84m7t94z3eek99al4xlyahkuw8ammjkcctzvtrmt0chuqgaphal08kaqhn0gn295v7wefe95eqvh5ndl'
             quantity = 3
             deplete = False
@@ -29,7 +29,6 @@ class TestLibrary (unittest.TestCase):
             params = {
                 "Tx": {
                     "Max": False,
-                    "token": "ADA",
                     "assets":[
                         {"name":"lovelace",
                         "target":3_000_000,
@@ -38,12 +37,14 @@ class TestLibrary (unittest.TestCase):
                 },
                 "metadata": metadata,
                 "mint": {
-                    "Flag": True,
-                    "with_quantity": True,
+                    "flag": True,
+                    "with_quantity": False,
                     "NFT_handle": False,
+                    "mint_wallet_id": "987f6d81f4f72c484f6d34c53e7d7f2719f40705",
+                    "wallet_destin_addr": "addr_test1qzfxu7zhedzn86v95k84m7t94z3eek99al4xlyahkuw8ammjkcctzvtrmt0chuqgaphal08kaqhn0gn295v7wefe95eqvh5ndl",
                     "tokens_info":[
                         {
-                            "name": "test_token",
+                            "name": "testtoken",
                             "amount": 20,
                             "PolicyID": None,
                         }
@@ -98,10 +99,11 @@ class TestLibrary (unittest.TestCase):
     if test_id==6:
 
         def test_generate_wallet_from_nmemonic(self):
-            name='forminting'
-            nmemonic = wallet.generate_mnemonic(24)
+            wallet_id='987f6d81f4f72c484f6d34c53e7d7f2719f40705'
+            # nmemonic = wallet.generate_mnemonic(24)
+            nmemonic = ['canal', 'issue', 'there', 'cricket', 'sand', 'develop', 'oak', 'erode', 'antenna', 'flock', 'invite', 'power', 'cheese', 'retreat', 'tennis', 'scout', 'swallow', 'found', 'never', 'spice', 'inch', 'artwork', 'cupboard', 'lumber']
 
-            utils.towallet(name,nmemonic)
+            utils.towallet(wallet_id,nmemonic)
     
     if test_id==7:
         def test_minting(self):
