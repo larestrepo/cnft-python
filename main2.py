@@ -62,10 +62,7 @@ metadata = {}
 params = {
     "metadata": metadata,
     "mint": {
-                        "with_quantity": False,
-                        "NFT_handle": False,
                         "mint_wallet_id": "987f6d81f4f72c484f6d34c53e7d7f2719f40705",
-                        "wallet_destin_addr": "addr_test1qzfxu7zhedzn86v95k84m7t94z3eek99al4xlyahkuw8ammjkcctzvtrmt0chuqgaphal08kaqhn0gn295v7wefe95eqvh5ndl",
                         "tokens_info":[
                             {
                                 "name": "testtoken",
@@ -75,10 +72,8 @@ params = {
                         ]
                     }
 }
-wallet01 = 'addr_test1qzfxu7zhedzn86v95k84m7t94z3eek99al4xlyahkuw8ammjkcctzvtrmt0chuqgaphal08kaqhn0gn295v7wefe95eqvh5ndl'
-wallet02 = 'addr_test1qzfxu7zhedzn86v95k84m7t94z3eek99al4xlyahkuw8ammjkcctzvtrmt0chuqgaphal08kaqhn0gn295v7wefe95eqvh5ndl'
 
-node.transactions(wallet01,wallet02,params)
+node.transactions(params)
 
 
 

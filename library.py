@@ -24,12 +24,14 @@ if not os.path.exists(keys_file_path):
     os.makedirs(keys_file_path)
 
 def wallet_to_address(wallet):
+    """ Convert name wallet to address"""
     if not wallet.startswith('addr' or 'DdzFF'):
         with open(keys_file_path + '/' + wallet + '/' + wallet + '.payment.addr','r') as file:
             wallet = file.readlines(1)[0]
     return wallet
 
 def save_metadata(metadata):
+    """Save metadata file and return metadata json file path"""
     if metadata == {}:
         metadata_json_file = ''
     else:
@@ -40,7 +42,8 @@ def save_metadata(metadata):
     return metadata_json_file
 
 def query_protocol():
-    """Executes query protocol parameters.
+    """Execute query protocol parameters.
+    No params needed
     Return: json file with protocol.json parameters"""
     command_string = [
         CARDANO_CLI_PATH,
@@ -68,7 +71,13 @@ def query_tip_exec():
 def build_raw_tx(TxHash, addr, fee, metadata_json_file, mint,script):
     """
     Transaction build raw.
-    :param address: TxHash of the origin address, address origin and destin
+    :param: 
+        TxHash: utxo hash of the origin address
+        addr: address of the destin wallet
+        fee: calculated fees for the transaction
+        metadata_json_file: path to the json file with metadata
+        mint: array that includes the mint balance of the token to be minted
+        script: path to the policy script
     :return: tx_build file
     """
     try:

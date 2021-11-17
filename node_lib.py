@@ -26,6 +26,7 @@ class Node():
 
 
     def insert_command(self, index, step, command_string, opt_commands):
+        """ function to insert commands to be executed in subprocess"""
         i = 0
         for opt_command in opt_commands:
             command_string.insert(index+i,str(opt_command))
@@ -34,6 +35,7 @@ class Node():
         return command_string, i
 
     def id_to_address(self, wallet_id):
+        """ Convert id wallet to address"""
         if not wallet_id.startswith('addr' or 'DdzFF'):
             with open(self.KEYS_FILE_PATH + '/' + wallet_id + '/' + wallet_id + '.payment.addr','r') as file:
                 address = file.readlines(1)[0]
@@ -42,7 +44,8 @@ class Node():
         return address
 
     def query_protocol(self):
-        """Executes query protocol parameters.
+        """Execute query protocol parameters.
+        No params needed
         Return: json file with protocol.json parameters"""
         command_string = [
             self.CARDANO_CLI_PATH,
@@ -71,8 +74,7 @@ class Node():
     def get_transactions(self, wallet_id):
         """
         Get the list of transactions from the given addresses.
-        :param address: Cardano Blockchain address to search for UTXOs
-        :param tokens_amounts: Dictionary where all tokens amounts are saved
+        :param address: Cardano Blockchain address or wallet id to search for UTXOs
         :return: ada_transactions, token_transactions
                 ada_transactions: list of transactions with lovelace only
                 token_transactions: list of transactions including custom tokens
@@ -109,36 +111,33 @@ class Node():
                     tr_amount['amount'] = trans[3 + i * 3 + 2]
                     transaction['amounts'].append(tr_amount)
                 token_transactions.append(transaction)
-                # add the tokens to total amounts to spend
-                # for t in transaction['amounts']:
-                #     if t['token'] in tokens_amounts:
-                #         tokens_amounts[t['token']] += int(t['amount'])
-                #     else:
-                #         tokens_amounts[t['token']] = int(t['amount'])
                 transactions['transactions'] = token_transactions
         return transactions
 
     def get_balance(self, wallet_id):
-            wallet_id = self.id_to_address(wallet_id)
-            transactions = self.get_transactions(wallet_id)
-            balance_dict = {}
+        """ Get the balance in dictionary format from wallet address or wallet id
+            return: balance dictionary listing the balance of the assets contained in the wallet
+        """
+        wallet_id = self.id_to_address(wallet_id)
+        transactions = self.get_transactions(wallet_id)
+        balance_dict = {}
 
-            balance = 0
-            transactions = transactions['transactions']
-            amounts = []
-            for utxo in transactions:
-                for amount in utxo['amounts']:
-                    amounts.append(amount)
-            amounts = sorted(amounts, key = itemgetter('token'))
-            for key, value in groupby(amounts, key = itemgetter('token')):
-                # print(f'The balance of "{key}" is: ')
-                for k in value:
-                    balance = balance + int(k['amount'])
-                    # print(k)
-                balance_dict[key]=balance
-                print(f'Total balance of "{key}" is "{balance}"')
+        balance = 0
+        transactions = transactions['transactions']
+        amounts = []
+        for utxo in transactions:
+            for amount in utxo['amounts']:
+                amounts.append(amount)
+        amounts = sorted(amounts, key = itemgetter('token'))
+        for key, value in groupby(amounts, key = itemgetter('token')):
+            # print(f'The balance of "{key}" is: ')
+            for k in value:
+                balance = balance + int(k['amount'])
+                # print(k)
+            balance_dict[key]=balance
+            print(f'Total balance of "{key}" is "{balance}"')
 
-            return balance_dict
+        return balance_dict
 
     def utxo_selection(self, addr_origin_tx, token, quantity, deplete):
         """ Function based on the coin selection algorithm to properly handle the use of utxos in the wallet. 
@@ -155,7 +154,6 @@ class Node():
         https://github.com/bitcoin/bitcoin/blob/3015e0bca6bc2cb8beb747873fdf7b80e74d679f/src/wallet.cpp#L1276
         https://bitcoin.stackexchange.com/questions/1077/what-is-the-coin-selection-algorithm
         """
-
         #Applying the coin selection algorithm
         minUTXO = 1000000
         TxHash = []
@@ -203,7 +201,6 @@ class Node():
                 amount_array = []
                 for _ in range(999):
                     index_random = random.randint(0,len(transactions)-1)
-                    # utxo = addr_origin_tx['transactions'][index_random]
                     utxo = transactions.pop(index_random)
                     utxo_array.append([utxo['hash'] + '#' + utxo['id']])
                     for amount in utxo['amounts']:
@@ -219,7 +216,9 @@ class Node():
 
     def tx_min_fee(self, tx_in_count,tx_out_count):
         """Calculates the expected min fees . 
-            No params needed
+            params:
+                tx_in_count: number of utxo in input
+                tx_out_count: number of utxo in output
             Return: Min fees value
         """
         command_string = [
@@ -238,10 +237,16 @@ class Node():
         rawResult = rawResult[0]
         return rawResult
 
-    def build_raw_tx(self, TxHash, addr, fee, metadata_json_file, mint,script):
+    def build_raw_tx(self, TxHash, addr, fee, metadata_json_file, mint, script):
         """
         Transaction build raw.
-        :param address: TxHash of the origin address, address origin and destin
+        :param: 
+            TxHash: utxo hash of the origin address
+            addr: address of the destin wallet
+            fee: calculated fees for the transaction
+            metadata_json_file: path to the json file with metadata
+            mint: array that includes the mint balance of the token to be minted
+            script: path to the policy script
         :return: tx_build file
         """
         command_string = [
@@ -266,157 +271,15 @@ class Node():
             mint_array.append('--minting-script-file')
             mint_array.append(script)
             command_string, index = self.insert_command(3+i,1,command_string,mint_array)
-        
-        # for address in addr:
-        #     command_string.insert(3+i,'--tx-out')
-        #     command_string.insert(4+i,address[0])
-        #     i += 2
-        # if metadata_json_file != '':
-        #     command_string.insert(3+i, '--metadata-json-file')
-        #     command_string.insert(4+i, metadata_json_file)
-        #     i += 2
-        # if mint != []:
-        #     command_string.insert(3+i, mint)
-        #     command_string.insert(4+i, '--minting-script-file')
-        #     command_string.insert(5+i, script)
-        # command_line = input()
-        # args = shlex.split(command_line)
-        # print(args)
-        print(command_string)
+
         subprocess.check_output(command_string)
 
-    # def utxo_selection(self, addr_origin_tx, assets, deplete):
-    #     """ Function based on the coin selection algorithm to properly handle the use of utxos in the wallet. 
-    #     Rules are:
-    #     1. If any of your UTXO matches the Target it will be used.
-    #     2. If the "sum of all your UTXO smaller than the Target" happens to match the Target, they will be used. (This is the case if you sweep a complete wallet.)
-    #     3. If the "sum of all your UTXO smaller than the Target" doesn't surpass the target, the smallest UTXO greater than your Target will be used.
-    #     4. Else Bitcoin Core does 1000 rounds of randomly combining unspent transaction outputs until their sum is greater than or equal to the Target. If it happens to find an exact match, it stops early and uses that.
-    #         Otherwise it finally settles for the minimum of
-
-    #             the smallest UTXO greater than the Target
-    #             the smallest combination of UTXO it discovered in Step 4.
-
-    #     https://github.com/bitcoin/bitcoin/blob/3015e0bca6bc2cb8beb747873fdf7b80e74d679f/src/wallet.cpp#L1276
-    #     https://bitcoin.stackexchange.com/questions/1077/what-is-the-coin-selection-algorithm
-    #     """
-
-    #     #Applying the coin selection algorithm
-    #     minUTXO = 1000000
-    #     TXHash_lovelace = []
-    #     TXHash_lovelace_lower = []
-    #     amount_lovelace_lower = []
-    #     TXHash_lovelace_greater = []
-    #     amount_lovelace_greater = []
-    #     TXHash_assets = []
-    #     amount_assets = []
-    #     utxo_found = False
-    #     transactions = addr_origin_tx['transactions'][:]
-
-    #     for asset, target in assets.items():
-    #         balance_asset = 0
-    #         for utxo in transactions:
-    #             for amount in utxo['amounts']:
-    #                 if asset == 'lovelace':
-    #                     if int(amount['amount']) <= target + minUTXO:
-    #                         TXHash_lovelace_lower.append(utxo['hash'] + '#' + utxo['id'])
-    #                         amount_lovelace_lower.append(int(amount['amount']))
-    #                     elif int(amount['amount']) > target + minUTXO:
-    #                         TXHash_lovelace_greater.append(utxo['hash'] + '#' + utxo['id'])
-    #                         amount_lovelace_greater.append(int(amount['amount']))
-    #                     elif int(amount['amount']) == target:
-    #                         TXHash_lovelace.append([utxo['hash'] + '#' + utxo['id']])
-    #                         amount_equal = int(amount['amount'])
-    #                         utxo_found = True
-    #                         break
-    #                 elif amount['token']==asset:
-    #                     balance_asset = balance_asset + int(amount['amount'])
-    #                     if balance_asset < target:
-    #                         TXHash_assets.append({asset:{'utxo':utxo['hash'] + '#' + utxo['id'],'amount':int(amount['amount'])}})
-    #     print(TXHash_lovelace_lower,TXHash_lovelace_greater,TXHash_assets)
-
-
-        # for utxo in transactions:
-        #     for amount in utxo['amounts']:
-        #         amounts.append(amount)
-        #     amounts = sorted(amounts, key = itemgetter('token'))
-        #     for key, value in groupby(amounts, key = itemgetter('token')):
-        #         # print(f'The balance of "{key}" is: ')
-        #         for k in value:
-        #             balance = balance + int(k['amount'])
-        #             # print(k)
-        #         balance_dict[key]=balance
-        #         print(f'Total balance of "{key}" is "{balance}"')
-
-        # for asset in TXHash_assets:
-            
-
-        # for utxo in addr_origin_tx['transactions']:
-        #     for amount in utxo['amounts']:
-        #         Tx
-        #         TxHash.append(TxHash_ass)
-        #         utxo_array.append([utxo['hash'] + '#' + utxo['id']])
-
-
-        # for asset, target in assets.items():
-        #     if asset in TXHash_assets:
-
-
-
-
-
-
-        # for utxo in addr_origin_tx['transactions']:
-        #     for amount in utxo['amounts']:
-        #         if amount['token']=='lovelace': 
-        #             if deplete:
-        #                 TXHash_lovelace.append([utxo['hash'] + '#' + utxo['id']])
-        #                 amount_equal = int(amount['amount'])
-        #                 utxo_found = True
-        #                 break
-        #             if int(amount['amount']) == quantity:
-        #                 TXHash_lovelace.append([utxo['hash'] + '#' + utxo['id']])
-        #                 amount_equal = int(amount['amount'])
-        #                 utxo_found = True
-        #                 break
-        #             elif int(amount['amount']) < quantity + minUTXO:
-        #                 TXHash_lovelace_lower.append(utxo['hash'] + '#' + utxo['id'])
-        #                 amount_lovelace_lower.append(int(amount['amount']))
-        #             elif int(amount['amount']) > quantity + minUTXO:
-        #                 TXHash_lovelace_greater.append(utxo['hash'] + '#' + utxo['id'])
-        #                 amount_lovelace_greater.append(int(amount['amount']))
-        #         # elif (amount['token'] != 'lovelace') and ()
-
-        # if not utxo_found:
-        #     if sum(amount_lower) == quantity:
-        #         TxHash = TxHash_lower
-        #         amount_equal = sum(amount_lower)
-        #     elif sum(amount_lower) < quantity:
-        #         if amount_greater == []:
-        #             TxHash = []
-        #             amount_equal = 0
-        #         amount_equal = min(amount_greater)
-        #         index = [i for i, j in enumerate(amount_greater) if j == amount_equal][0]
-        #         TxHash.append([TxHash_greater[index]])
-        #     else:
-        #         utxo_array = []
-        #         amount_array = []
-        #         for _ in range(999):
-        #             index_random = random.randint(0,len(transactions)-1)
-        #             # utxo = addr_origin_tx['transactions'][index_random]
-        #             utxo = transactions.pop(index_random)
-        #             utxo_array.append([utxo['hash'] + '#' + utxo['id']])
-        #             for amount in utxo['amounts']:
-        #                 if amount['token']==token: 
-        #                     amount_array.append(int(amount['amount']))
-        #             if sum(amount_array) >= quantity + minUTXO:
-        #                 amount_equal = sum(amount_array)
-        #                 break
-        #         TxHash = utxo_array
-
-        # return TxHash, amount_equal
-
     def create_minting_policy(self, wallet_id):
+        """Function to create minting script, minting key and policyID
+        params:wallet id
+        return: policyID 
+        """
+
         path = self.KEYS_FILE_PATH + '/' + wallet_id + '/' + 'minting/'
         if not os.path.exists(path):
             os.makedirs(path)
@@ -439,7 +302,6 @@ class Node():
             "type": "sig"
         }
 
-
         with open(path + '/' + wallet_id + '.policy.script','w') as file:
             json.dump(policy_script, file, indent=4, ensure_ascii=True)
 
@@ -453,8 +315,8 @@ class Node():
         return policyID
 
     def sign_transaction(self, wallet_id, mint):
-        # Sign the transaction based on tx_raw file.
-        # For the time being not handling multi-witness
+        """Sign the transaction based on tx_raw file.
+            For the time being not handling multi-witness"""
         command_string = [
             self.CARDANO_CLI_PATH,
             'transaction', 'sign',
@@ -475,7 +337,7 @@ class Node():
         subprocess.check_output(command_string)
     
     def submit_transaction(self):
-        # Submit the transaction
+        """Submit the transaction"""
         command_string = [
             self.CARDANO_CLI_PATH,
             'transaction', 'submit',
@@ -486,46 +348,41 @@ class Node():
         rawResult= subprocess.check_output(command_string)
         print(rawResult)
 
-    def transactions(self, wallet_origin, wallet_destin, params):
-        """Sign and submit. 
-            :param address: TxHash of the origin address, address origin and destin
+    def transactions(self, params):
+        """Handle transactions specially minting. 
+            Params:
+                params = {
+                    "metadata": metadata,
+                    "mint": {
+                                        "mint_wallet_id": "987f6d81f4f72c484f6d34c53e7d7f2719f40705",
+                                        "tokens_info":[
+                                            {
+                                                "name": "testtoken",
+                                                "amount": 20,
+                                                "PolicyID": '205a5880aebba0d1e330bb652114e3baea52542d4c0cb2defe26d5c9',
+                                            }
+                                        ]
+                                    }
+                }
+                mint_wallet_id: origin and destin wallet id
             Return: 
         """
         minUTXOValue = 1000000
-        addr_origin = self.id_to_address(wallet_origin)
-        addr_destin = self.id_to_address(wallet_destin)
+        wallet_id = params['mint']['mint_wallet_id']
+        addr_origin = self.id_to_address(wallet_id)
         addr_origin_tx = self.get_transactions(addr_origin)
         addr_zero = []
         # deplete = params['Tx']['Max']
 
-        balance = self.get_balance(wallet_origin)
+        balance = self.get_balance(wallet_id)
         print(balance)
-
-        # Check for enough funds or minUTXOValue
-        # TxHash_in, amount_equal = self.utxo_selection(addr_origin_tx,params['Tx']['assets'],deplete)
-
-        # for asset, target in params['Tx']['assets'].items():
-        #     if asset in balance:
-        #         target = int(target)
-        #         target_calculated =  target + 200000
-        #         if int(balance[asset['name']]) < target_calculated: # Fee first aproximation
-        #             print("No funds available in the origin wallet")
-        #             break
-        #         elif target < minUTXOValue:
-        #             print('OutputTooSmallUTxo')
-        #             break
-        #         else:
-        #             # For here when multiple destination address
-        #             addr_zero.append([addr_origin + '+' + str(0)])
-        #             TxHash_in, amount_equal = self.utxo_selection(addr_origin_tx,asset['name'],target_calculated, deplete)
-
         # Check if minting tokens as part of the transaction
         mint = []
         script_path = ''
         if params['mint'] is not {}:
             tokenamount_mint = params['mint']['tokens_info'][0]['amount']
             tokenname = params['mint']['tokens_info'][0]['name']
-            wallet_id = params['mint']['mint_wallet_id']
+            
 
             if params['mint']['tokens_info'][0]['PolicyID'] == None:
                 # Create keys and policy IDs
@@ -533,10 +390,6 @@ class Node():
             else:
                 policyid = params['mint']['tokens_info'][0]['PolicyID']
 
-            # if params['mint']['with_quantity']:
-            #     target = params['Tx']['assets'][0]['target']
-            #     target_calculated = target + 200000
-            # else:
             if policyid + '.' + tokenname in balance:
                 tokenbalance = balance[policyid + '.' + tokenname]
 
@@ -547,55 +400,10 @@ class Node():
             script_path = self.KEYS_FILE_PATH + '/' + wallet_id + '/minting/' + wallet_id + '.policy.script'
             mint = '--mint=' + str(tokenamount_mint) + ' ' + str(policyid) + '.' + str(tokenname)
             addr_zero.append('--tx-out')
-            addr_zero.append(addr_destin + '+' + str(0) + '+' + str(tokenbalance) + ' ' + str(policyid) + '.' + str(tokenname))
+            addr_zero.append(addr_origin + '+' + str(0) + '+' + str(tokenbalance) + ' ' + str(policyid) + '.' + str(tokenname))
 
         deplete = False
         TxHash_in, amount_equal = self.utxo_selection(addr_origin_tx,'lovelace',target_calculated,deplete)
-
-        
-
-
-        # if deplete:
-        #     target = balance[0]['lovelace']
-        #     target_calculated = target
-
-        # elif params['mint']['flag']:
-        #     # Minting tokens
-            
-        #     tokenamount = params['mint']['tokens_info'][0]['amount']
-        #     tokenname = params['mint']['tokens_info'][0]['name']
-        #     wallet_id = params['mint']['mint_wallet_id']
-
-        #     if params['mint']['tokens_info'][0]['PolicyID'] == None:
-        #         # Create keys and policy IDs
-        #         policyid = utils.create_minting_policy(wallet_id)
-        #     else:
-        #         policyid = params['mint']['tokens_info'][0]['PolicyID']
-
-        #     if params['mint']['with_quantity']:
-        #         target = params['Tx']['assets'][0]['target']
-        #         target_calculated = target + 200000
-        #     else:
-        #         target = minUTXOValue
-        #         target_calculated = target + 200000
-
-        #     script_path = keys_file_path + '/' + wallet_id + '/minting/' + wallet_id + '.policy.script'
-        #     mint = '--mint=' + str(tokenamount) + ' ' + str(policyid) + '.' + str(tokenname)
-        #     addr_zero.append([addr_destin + '+' + str(0) + '+' + str(tokenamount) + ' ' + str(policyid) + '.' + str(tokenname)])
-
-        # else:
-        #     target = params['Tx']['assets'][0]['target']
-        #     target_calculated = target + 200000
-        #     addr_zero.append([addr_origin + '+' + str(0)])
-
-        # if balance[0]['lovelace'] < target_calculated:
-        #     print("No funds available in the origin wallet")
-        # elif target < minUTXOValue:
-        #     print('OutputTooSmallUTxo')
-        # else:
-        
-        
-            
 
         metadata = params['metadata']
         metadata_json_file = utils.save_metadata(self.TRANSACTION_PATH_FILE, metadata)
@@ -603,6 +411,7 @@ class Node():
         ###########################
         # Section to calculate min fees
         ###########################
+
         #Create the tx_raw file to calculate the min fee
         self.build_raw_tx(TxHash_in, addr_zero, 0, metadata_json_file, mint, script_path)
         #Calculate min fees based on previously tx_raw file
@@ -617,14 +426,14 @@ class Node():
         addr = []
         target = amount_equal - fee
         addr.append('--tx-out')
-        addr.append(addr_destin + '+' + str(int(target)) + '+' + str(tokenbalance) + ' ' + str(policyid) + '.' + str(tokenname))
+        addr.append(addr_origin + '+' + str(int(target)) + '+' + str(tokenbalance) + ' ' + str(policyid) + '.' + str(tokenname))
 
         # #Create the tx_raw file with the fees included
             
         self.build_raw_tx(TxHash_in, addr, fee, metadata_json_file, mint, script_path)
 
         print("################################")
-        print("Sending '{}' from {} to {}. Fees are: {}".format(target, wallet_origin, wallet_destin,fee))
+        print("Sending '{}' from {} to {}. Fees are: {}".format(target, wallet_id, fee))
         print("################################")
 
         self.sign_transaction(wallet_id,mint)
