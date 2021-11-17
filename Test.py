@@ -5,6 +5,7 @@ import library as lb
 import wallet_lib as wallet
 import time
 import utils
+from node_lib import Node
 
 test_id = 1 # pick between test functions
 
@@ -29,15 +30,13 @@ class TestLibrary (unittest.TestCase):
             params = {
                 "Tx": {
                     "Max": False,
-                    "assets":[
-                        {"name":"lovelace",
-                        "target":3_000_000,
+                    "assets":
+                        {"lovelace": 3_000_000,
+                        "testtoken": 10,
                         },
-                        ],
                 },
                 "metadata": metadata,
                 "mint": {
-                    "flag": True,
                     "with_quantity": False,
                     "NFT_handle": False,
                     "mint_wallet_id": "987f6d81f4f72c484f6d34c53e7d7f2719f40705",
@@ -109,6 +108,7 @@ class TestLibrary (unittest.TestCase):
         def test_minting(self):
             wallet_name = 'Mint_wallet'
             utils.create_minting_policy(wallet_name)
+    
 
 
         

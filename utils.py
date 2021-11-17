@@ -29,6 +29,16 @@ def remove_files(path,name):
     # os.rmdir(path+name)
     # shutil.rmtree(path+name)
 
+def save_metadata(path, metadata):
+    if metadata == {}:
+        metadata_json_file = ''
+    else:
+        with open(path + '/' + 'metadata.json','w') as file:
+            json.dump(metadata, file,indent=4,ensure_ascii=False)
+        metadata_json_file = path + '/' + 'metadata.json'
+
+    return metadata_json_file
+
 
 def towallet(wallet_id,mnemonic):
     try:

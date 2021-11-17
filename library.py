@@ -3,7 +3,6 @@ from decouple import config
 import json, os
 import random
 import utils
-import shlex
 
 # Import params
 CARDANO_NETWORK_MAGIC = config('CARDANO_NETWORK_MAGIC')
