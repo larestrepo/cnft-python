@@ -1,27 +1,33 @@
 import subprocess
 from itertools import groupby
-from operator import add, itemgetter
+from operator import itemgetter
 import os
 import json
 import utils
 import random
-import wallet_lib as wallet
-
+import requests
+import sys
 
 class Node():
-    def __init__(self,
-    CARDANO_NETWORK,
-    CARDANO_CLI_PATH,
-    CARDANO_NETWORK_MAGIC,
-    TRANSACTION_PATH_FILE,
-    KEYS_FILE_PATH,
-    ):
 
-        self.CARDANO_CLI_PATH = CARDANO_CLI_PATH
-        self.CARDANO_NETWORK_MAGIC = CARDANO_NETWORK_MAGIC
-        self.TRANSACTION_PATH_FILE = TRANSACTION_PATH_FILE
-        self.CARDANO_NETWORK = CARDANO_NETWORK
-        self.KEYS_FILE_PATH = KEYS_FILE_PATH
+    def __init__(self, working_dir):
+
+        with open(working_dir + '/config_file.json') as file:
+            params=json.load(file)
+
+        self.CARDANO_NETWORK_MAGIC = params['node']['CARDANO_NETWORK_MAGIC']
+
+        self.CARDANO_CLI_PATH = params['node']['CARDANO_CLI_PATH']
+
+        self.CARDANO_NETWORK = params['node']['CARDANO_NETWORK']
+
+        self.TRANSACTION_PATH_FILE = params['node']['transactions']
+        if not os.path.exists(self.TRANSACTION_PATH_FILE):
+            os.makedirs(self.TRANSACTION_PATH_FILE)
+
+        self.KEYS_FILE_PATH = params['node']['keys_path']
+        if not os.path.exists(self.KEYS_FILE_PATH):
+            os.makedirs(self.KEYS_FILE_PATH, exist_ok=True)
 
 
     def insert_command(self, index, step, command_string, opt_commands):
@@ -464,3 +470,231 @@ class Node():
             "policy_script": policy_script,
         }
         return mint
+
+
+class Wallet():
+
+    def __init__(self, working_dir) -> None:
+        
+        with open(working_dir + '/config_file.json') as file:
+            params=json.load(file)
+        
+        self.URL = params['node']['URL']
+    
+    def list_wallets(self):
+        """Return a list of known wallets, ordered from oldest to newest.
+        No params needed"""
+        request_status_url = self.URL
+        wallets_info = requests.get(request_status_url)
+        return wallets_info.json()
+
+    def generate_mnemonic(self, size):
+        """Create mnemonic sentence (list of mnemonic words)
+        Input: size number of words: 24 by default"""
+        try:
+            # Generate mnemonic
+            command_string = [
+                'cardano-wallet', 'recovery-phrase', 'generate',
+                '--size', str(size)
+            ]
+            mnemonic = subprocess.check_output(command_string)
+            mnemonic = mnemonic.decode('utf-8')
+            mnemonic = mnemonic.split()
+            return mnemonic
+
+        except OSError as e:
+            print("Execution failed:", e, file=sys.stderr)
+
+    def create_wallet(self, name, passphrase, mnemonic):
+        """Create or restore wallet
+        Inputs: name, passphrase and mnemonic sentence
+        Return: json with status of the wallet"""
+        data = {
+            'name': name,
+            'mnemonic_sentence':mnemonic,
+            'passphrase': passphrase
+        }
+        
+        # Create wallet
+        r = requests.post(self.URL,json=data)
+        return r.json()
+
+    def wallet_info(self, id):
+        """ Info of the wallet
+        Inputs: Id of the wallet
+        Return json with status of the wallet with info like lovelace and assets balance, delegation status, etc"""
+        request_status_url = self.URL + id
+        wallet_info = requests.get(request_status_url)
+        return wallet_info.json()
+
+    def get_addresses(self, id):
+        """Get only unused addresses for specific wallet
+        Inputs: Id of the wallet
+        """
+        #Get only unused addresses
+        request_address_url = self.URL + id + '/addresses?state=unused'
+        addresses = requests.get (request_address_url)
+        return addresses.json()
+
+    def delete_wallet(self, id):
+        """Delete wallet 
+        Inputs: Id of the wallet
+        """
+        request_status_url = self.URL + id
+        r = requests.delete(request_status_url)
+        try:
+            r.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            # Whoops it wasn't a 200
+            return "Error: " + str(e)
+        return r.json()
+
+    def min_fees(self, id, data):
+        """ Estimate min fees for the transaction
+        Inputs: Id of the wallet
+                data with details of the transactio like metadata, address to, amount, etc
+        Return: estimated_min, estimated_max, minimum_coins, deposit"""
+        request_address_url = self.URL + id + '/payment-fees'
+        r = requests.post(request_address_url, json=data)
+        r = r.json()
+        return r
+
+    def send_transaction(self, id, data):
+        """Create, sign and submmit the transaction
+        Inputs: Id of the wallet
+                data with details of the transactio like metadata, address to, amount, etc
+        Return: json with details of the transaction and the status
+        """
+        request_address_url = self.URL + id + '/transactions'
+        r = requests.post(request_address_url, json=data)
+        r = r.json()
+        return r
+
+    def confirm_transaction(self, id, tx_id):
+        """Lists all incoming and outgoing wallet's transactions.
+        Inputs: Id of the wallet
+        Return: json with details of the transaction and the status """
+        request_address_url = self.URL + id + '/transactions/' + tx_id
+        r = requests.get(request_address_url)
+        r = r.json()
+        return r
+
+    def mint_token(self, id, mint_burn):
+        """Not used at the moment in this API. For minting use the node class transactions function"""
+        request_address_url = self.URL + id + '/assets'
+        r = requests.post(request_address_url,mint_burn)
+        r = r.json()
+        return r
+
+    def assets_balance(self, id):
+        """ List all assets associated with the wallet, and their metadata if known.
+            An asset is associated with a wallet if it is involved in a transaction of the wallet.
+        Inputs: Id of the wallet
+        Return: json with the policyid, asset name, fingerprint and metadata
+        """
+        request_address_url = self.URL + id + '/assets'
+        r = requests.get(request_address_url)
+        r = r.json()
+        return r
+
+class IOT(Node, Wallet):
+    def __init__(self, working_dir) -> None:
+        super().__init__(working_dir)
+
+    
+    def message_treatment(self, obj, client_id):
+
+        """Main function that receives the object from the pubsub and defines which execution function to call"""
+        main ={
+            'client_id': client_id
+        }
+
+        if obj[0]['cmd_id'] == 'query_tip':
+            print('Executing query tip')
+            result = Node.query_tip_exec(self)
+            main.update(result)
+        
+        elif obj[0]['cmd_id'] == 'generate_new_mnemonic_phrase':
+            print('Executing generate_new_mnemonic_phrase')
+            size = obj[0]['message']['size']
+            mnemonic = Wallet.generate_mnemonic(self, size)
+            main['wallet_mnemonic']=mnemonic
+    
+        elif obj[0]['cmd_id'] == 'generate_wallet':
+            print('Executing generate wallet')
+            name = obj[0]['message']['wallet_name']
+            passphrase = obj[0]['message']['passphrase']
+            mnemonic = obj[0]['message']['mnemonic']
+
+            wallet_status = Wallet.create_wallet(self, name, passphrase, mnemonic)
+            main['wallet_status']=wallet_status
+            id = wallet_status['id']
+            utils.towallet(id, mnemonic)
+
+            address = Wallet.get_addresses(self, wallet_status['id'])
+            main['address']=address
+
+        elif obj[0]['cmd_id'] == 'wallet_info':
+            print('Executing wallet info')
+            id = obj[0]['message']['id']
+            wallet_info = Wallet.wallet_info(self, id)
+            main['wallet_info']=wallet_info
+            address = Wallet.get_addresses(self, id)
+            main['address']=address
+        
+        elif obj[0]['cmd_id'] == 'min_fees':
+            print('Executing min fees')
+            id = obj[0]['message']['id']
+            tx_info = obj[0]['message']['tx_info']
+            tx_info["time_to_live"]={
+                            "quantity": 10,
+                            "unit": "second"
+                            }
+            tx_info["withdrawal"]="self"
+            tx_result = Wallet.min_fees(self, id, tx_info)
+            main['min_fees']= tx_result
+        
+        elif obj[0]['cmd_id'] == 'send_transaction':
+            print('Executing send transaction')
+            id = obj[0]['message']['id']
+            tx_info = obj[0]['message']['tx_info']
+            tx_info["time_to_live"]={
+                            "quantity": 60,
+                            "unit": "second"
+                            }
+            tx_info["withdrawal"]="self"
+            tx_result = Wallet.send_transaction(self, id, tx_info)
+            main['tx_result']= tx_result
+        
+        elif obj[0]['cmd_id'] == 'confirm_transaction':
+            print('Executing confirmation of the transaction')
+            id = obj[0]['message']['id']
+            tx_id = obj[0]['message']['tx_id']
+            tx_result = Wallet.confirm_transaction(self, id, tx_id)
+            main['tx_result']= tx_result
+        
+        elif obj[0]['cmd_id'] == 'mint_asset':
+            print('Executing mint asset')
+
+            mint = Node.transactions(self, obj[0])
+            main['tx_result'] = mint
+        
+        elif obj[0]['cmd_id'] == 'delete_wallet':
+            print('Executing wallet deletion')
+            id = obj[0]['message']['id']
+            print(id)
+            wallet_info = Wallet.delete_wallet(self, id)
+            if wallet_info=={}:
+                wallet_info={
+                    'message':"wallet succesfully deleted",
+                }
+            main['tx_result'] = wallet_info
+
+        elif obj[0]['cmd_id'] == 'assets_balance':
+            print('Executing assets info')
+            id = obj[0]['message']['id']
+            assets_balance = Wallet.assets_balance(self, id)
+            main['assets_balance']=assets_balance
+    
+        obj.pop(0)
+        return main

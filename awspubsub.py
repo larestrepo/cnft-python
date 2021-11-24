@@ -9,8 +9,8 @@ import time
 from uuid import uuid4
 import json
 from datetime import datetime
-
-import cardanowallet as cw
+# import cardanowallet as cw
+from node_lib import IOT
 
 # Load files and config parameters
 
@@ -26,6 +26,7 @@ verbosity = params['AWS_IOT']['verbosity']['NoLogs']
 signing_region = params['AWS_IOT']['signing_region']
 topic = params['AWS_IOT']['topic']
 client_id = "test-" + str(uuid4())
+working_dir = "/home/cardanodatos/git/cnft-python/"
 
 io.init_logging(getattr(io.LogLevel, verbosity), 'stderr')
 
@@ -71,7 +72,9 @@ def on_message_received(topic, payload):
             print("Received message from topic '{}' : '{}' : {}".format(nowTimeStamp, topic, obj))
             # # Waits until the object lenght is equal to the sequence number in the message 
             if len(obj) == obj[0]['seq']:
-                result_json = cw.result_treatment(obj,client_id)
+                iot = IOT(working_dir)
+                result_json = iot.message_treatment(obj,client_id)
+                # result_json = cw.result_treatment(obj,client_id)
                 # q.put(result_json)
                 # message = q.get()
                 message = result_json
