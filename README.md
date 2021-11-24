@@ -194,7 +194,8 @@ message (type: string): in case any additional parameter is needed to build the 
   "message": {
 		"wallet_name": "wallet_name",
 		"passphrase": "passphrase",
-		"mnemonic": "mnemonic"
+		"mnemonic": "mnemonic",
+        "id": "id",
   }
 }
 ```
@@ -305,54 +306,76 @@ message (type: string): in case any additional parameter is needed to build the 
 
 8. Mint token
 ```json
-{
-    "seq": 1,
-    "cmd_id": "mint_asset",
-    "message": {
-        "id": "2781d44e82ad834750c8fd2654faccd2db912eaa",
-        "tx_info": {
-        "mint_burn": [
-                        {
-                        "monetary_policy_index": 0,
-                        "asset_name": "ASSET1",
-                        "operation": {
-                            "mint": {
-                            "receiving_address": "addr_test1qzztka0rrj8tykgnrr9qn3yjkg7aawra4azcxkc9q56khna0yzn06hf399g6wmcqce90gxqujpzu7duaenk2t2vy3gjsaw8faa",
-                            "amount": {
-                                "quantity": 2,
-                                "unit": "assets"
-                            }
-                            }
-                        }
-                        }
-                    ],
-    "passphrase": "I$t1234LuisTest",
-    "metadata":{
-                        "1337": {
-                            "map": [
-                                {
-                                    "k": {
-                                        "string": "name"
-                                    },
-                                    "v": {
-                                        "string": "hello world"
-                                    }
-                                },
-                                {
-                                    "k": {
-                                        "string": "completed"
-                                    },
-                                    "v": {
-                                        "int": 0
-                                    }
-                                }
-                            ]
-                        }
-                    }
 
+{
+  "seq": 1,
+  "cmd_id": "mint_asset",
+  "message": {
+    "tx_info": {
+      "mint": {
+        "id": "6c8eadf91ae46e93d953657ac968fbd4b8f0afed",
+        "metadata": {},
+        "address": "addr_test1qpjltzup7mjfk9vhrj4ltv6sduwv427nmjqf623jje7zt5qytthp9vmrx4y8t4kwk73jlxxsqwu75fd4dx5k5uzl54rsh4wu29",
+        "tokens": [
+          {
+            "name": "testtokens2",
+            "amount": 35,
+            "policyID": "1f4df2e4cb4c94705bed1312646d95c9b0f4ec342445619c65593601"
+          }
+        ]
+      }
+    }
+  }
 }
-}
-}
+
+// {
+//     "seq": 1,
+//     "cmd_id": "mint_asset",
+//     "message": {
+//         "id": "2781d44e82ad834750c8fd2654faccd2db912eaa",
+//         "tx_info": {
+//         "mint_burn": [
+//                         {
+//                         "monetary_policy_index": 0,
+//                         "asset_name": "ASSET1",
+//                         "operation": {
+//                             "mint": {
+//                             "receiving_address": "addr_test1qzztka0rrj8tykgnrr9qn3yjkg7aawra4azcxkc9q56khna0yzn06hf399g6wmcqce90gxqujpzu7duaenk2t2vy3gjsaw8faa",
+//                             "amount": {
+//                                 "quantity": 2,
+//                                 "unit": "assets"
+//                             }
+//                             }
+//                         }
+//                         }
+//                     ],
+//     "passphrase": "I$t1234LuisTest",
+//     "metadata":{
+//                         "1337": {
+//                             "map": [
+//                                 {
+//                                     "k": {
+//                                         "string": "name"
+//                                     },
+//                                     "v": {
+//                                         "string": "hello world"
+//                                     }
+//                                 },
+//                                 {
+//                                     "k": {
+//                                         "string": "completed"
+//                                     },
+//                                     "v": {
+//                                         "int": 0
+//                                     }
+//                                 }
+//                             ]
+//                         }
+//                     }
+
+// }
+// }
+// }
 
 ```
 9. Delete wallet
@@ -361,6 +384,16 @@ message (type: string): in case any additional parameter is needed to build the 
 {
   "seq": 1,
   "cmd_id": "delete_wallet",
+  "message": {
+		"id": "id"
+  }
+}
+```
+10. assets info
+```json
+{
+  "seq": 1,
+  "cmd_id": "assets_balance",
   "message": {
 		"id": "id"
   }

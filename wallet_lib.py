@@ -29,9 +29,6 @@ def generate_mnemonic(size=24):
 
 
 def create_wallet(name,passphrase,mnemonic):
-
-    import utils
-    utils.towallet(name,mnemonic)
     
     data = {
         'name': name,
@@ -57,6 +54,11 @@ def get_addresses(id):
 def delete_wallet(id):
     request_status_url = URL + id
     r = requests.delete(request_status_url)
+    try:
+        r.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        # Whoops it wasn't a 200
+        return "Error: " + str(e)
     return r.json()
 
 def min_fees(id,data):
@@ -80,5 +82,11 @@ def confirm_transaction(id,tx_id):
 def mint_token(id,mint_burn):
     request_address_url = URL + id + '/assets'
     r = requests.post(request_address_url,mint_burn)
+    r = r.json()
+    return r
+
+def assets_balance(id):
+    request_address_url = URL + id + '/assets'
+    r = requests.get(request_address_url)
     r = r.json()
     return r

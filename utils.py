@@ -204,4 +204,4 @@ def create_minting_policy(wallet_id):
     output = subprocess.Popen(command_string,stdout=subprocess.PIPE)
     policyID = str(output.communicate()[0].decode('utf-8')).rstrip()
     save_files(path, wallet_id + '.policyID',str(policyID))
-    return policyID
+    return policy_script, policyID

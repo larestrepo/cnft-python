@@ -45,8 +45,7 @@ node = Node(
     CARDANO_CLI_PATH,
     CARDANO_NETWORK_MAGIC,
     TRANSACTION_PATH_FILE,
-    KEYS_FILE_PATH,
-    wallet_id
+    KEYS_FILE_PATH
     )
 # node.query_protocol()
 # result = node.query_tip_exec()
@@ -58,22 +57,25 @@ node = Node(
 # print(balance)
 
 
-metadata = {}
 params = {
-    "metadata": metadata,
-    "mint": {
-                        "mint_wallet_id": "987f6d81f4f72c484f6d34c53e7d7f2719f40705",
-                        "tokens_info":[
-                            {
-                                "name": "testtoken",
-                                "amount": 20,
-                                "PolicyID": '205a5880aebba0d1e330bb652114e3baea52542d4c0cb2defe26d5c9',
-                            }
-                        ]
-                    }
+  "seq": 1,
+  "cmd_id": "mint_asset",
+  "message": {
+    "tx_info": {
+      "mint": {
+        "id": "6c8eadf91ae46e93d953657ac968fbd4b8f0afed",
+        "metadata": {},
+        "address": "addr_test1qpjltzup7mjfk9vhrj4ltv6sduwv427nmjqf623jje7zt5qytthp9vmrx4y8t4kwk73jlxxsqwu75fd4dx5k5uzl54rsh4wu29",
+        "tokens": [
+          {
+            "name": "testtokens2",
+            "amount": 20,
+            "policyID": ""
+          }
+        ]
+      }
+    }
+  }
 }
 
 node.transactions(params)
-
-
-
