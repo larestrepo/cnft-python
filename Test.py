@@ -42,15 +42,15 @@ def save_metadata( metadata):
         metadata_json_file = TRANSACTION_PATH_FILE + '/' + 'metadata.json'
 
     return metadata_json_file
-node = Node(
-CARDANO_NETWORK, 
-CARDANO_CLI_PATH,
-CARDANO_NETWORK_MAGIC,
-TRANSACTION_PATH_FILE,
-KEYS_FILE_PATH
-)
+# node = Node(
+# CARDANO_NETWORK, 
+# CARDANO_CLI_PATH,
+# CARDANO_NETWORK_MAGIC,
+# TRANSACTION_PATH_FILE,
+# KEYS_FILE_PATH
+# )
 
-test_id = 9 # pick between test functions
+test_id = 10 # pick between test functions
 
 class TestLibrary (unittest.TestCase):
 
@@ -186,23 +186,36 @@ class TestLibrary (unittest.TestCase):
             balance = node.get_balance(address)
             print(balance)
 
-        # def test_full_cycle(self):
-        #     """ 1. Create wallet
-        #     {
-        #         "seq": 1,
-        #         "cmd_id": "generate_new_mnemonic_phrase",
-        #         "message": { 
-        #                 "size": 24
-        #         }
-        #         }
+    if test_id==10:
+        
+        def test_send_funds(self): # using cardano_wallet
+            id = '987f6d81f4f72c484f6d34c53e7d7f2719f40705'
+            data = {
+                    "passphrase": "Mint_wallet",
+                    "payments": [
+                        {
+                            "address": "addr_test1qpnuf4625gk85yqtcdkvf5m65gg4tf26pxun8xar7609d6sytthp9vmrx4y8t4kwk73jlxxsqwu75fd4dx5k5uzl54rsmmq287",
+                            "amount": {
+                                "quantity": 5000000,
+                                "unit": "lovelace"
+                            },
+                            "assets": [{
+                                "policy_id": "205a5880aebba0d1e330bb652114e3baea52542d4c0cb2defe26d5c9",
+                                "asset_name": "74657374746f6b656e",
+                                "quantity": 1
+                                }]
+                        }
+                    ],
+                    "metadata": {},
+                    "time_to_live": {
+                        "quantity": 60,
+                        "unit": "second"
+                    },
+                    "withdrawal": "self"
+                }
 
-        #     """
-
-        #     # 1.a Create nmemonic
-        #     size = 24
-        #     mnemonic = wallet.generate_mnemonic(size)
-
-    
+            response = wallet.send_transaction(id, data)
+            print(response)
 
 
         

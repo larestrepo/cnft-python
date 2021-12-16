@@ -9,7 +9,7 @@ import time
 from uuid import uuid4
 import json
 from datetime import datetime
-# import cardanowallet as cw
+import cardanowallet as cw
 from node_lib import IOT
 
 # Load files and config parameters

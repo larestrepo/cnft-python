@@ -1,12 +1,77 @@
-# cnft-python
+# CardanoPython
 
-Cardano NFT Python
+There are 2 ways to interact with this library.
+
+1. With Cardano node and Cardano wallet installed (installation instruction in separate file) you can just simple installed the CardanoPython SDK and start to use it:
+
+2. If you want to use this library but don't have Cardano node or Cardano wallet installed then you need to configure your server/interface as a client API. We are using IOT core to open a websocket and allow the communication with our infrastructure. Instructions below.
 ##
 
 ### Prerequesites
 
 1. Cardano-node running (separate readme file explaining how to build it)
 2. Cardano wallet running (separate readme file explaining how to build it). Some of the built in functionalities can be covered from CLI but there are some functionalities that we want to make them through the API wallet.
+
+This library relies on a file called config_file.json
+
+```json
+{"node":{
+        "keys_path": "./priv/wallets",
+        "transactions": "./priv/transactions",
+        "CARDANO_NETWORK": "testnet",
+        "CARDANO_NETWORK_MAGIC": 1097911063,
+        "CARDANO_CLI_PATH": "cardano-cli",
+        "URL": "http://localhost:8090/v2/wallets/"
+    }
+}
+```
+
+There are 3 classes in the library all contained in the file node_lib.py: Node, Wallet, IOT
+
+a. Wallet class
+
+List of methods:
+
+- list_wallets
+- generate_mnemonic
+- create_wallet
+- wallet_info
+- get_addresses
+- delete_wallet
+- min_fees
+- send_transaction
+- confirm_transaction
+- assets_balance
+
+b. Node class
+
+- query_protocol
+- query_tip
+- get_transactions
+- get_balance
+- minting
+
+To instantiate the class, just called with working directory param
+
+```python
+from node_lib import Wallet
+
+working_dir = "/home/cardanodatos/git/cnft-python/"
+
+wallet = Wallet(working_dir)
+
+list_wallets = wallet.list_wallets()
+print(list_wallets)
+
+
+
+generate_mnemonic
+```
+
+
+
+
+
 3. AWS IOT Core configured. Basic instructions are explained here. 
 
 ### Configure Virtual Environment for Python
@@ -195,7 +260,6 @@ message (type: string): in case any additional parameter is needed to build the 
 		"wallet_name": "wallet_name",
 		"passphrase": "passphrase",
 		"mnemonic": "mnemonic",
-        "id": "id",
   }
 }
 ```
@@ -239,7 +303,7 @@ message (type: string): in case any additional parameter is needed to build the 
     "cmd_id": "send_transaction",
     "passphrase": "Contraseña de gastos",
     "message": {
-            "id": "2781d44e82ad834750c8fd2654faccd2db912eaa",
+            "id": "987f6d81f4f72c484f6d34c53e7d7f2719f40705",
             "tx_info": {
             "payments": [
             {
@@ -256,48 +320,13 @@ message (type: string): in case any additional parameter is needed to build the 
     }
 }
 ```
-7. Confirm the transaction
+7. Confirm transaction
 ```json
 {
         "seq": 1,
-        "cmd_id": "send_transaction",
+        "cmd_id": "confirm_transaction",
         "message": {
-            "id": "2781d44e82ad834750c8fd2654faccd2db912eaa",
-            "tx_info": {
-                "passphrase": "I$t1234LuisTest",
-                "payments": [
-                    {
-                        "address": "addr_test1qrleh5h8gzu9knaflmqyz762cc6npw949cqhmahss73d4qw8efl2d2gxsqp95khr20ctecwdyzs950987crj69eug09svnklcz",
-                        "amount": {
-                            "quantity": 5000000,
-                            "unit": "lovelace"
-                        },
-                        "assets": null
-                    }
-                ],
-                "metadata": {
-                    "1337": {
-                        "map": [
-                            {
-                                "k": {
-                                    "string": "name"
-                                },
-                                "v": {
-                                    "string": "hello world"
-                                }
-                            },
-                            {
-                                "k": {
-                                    "string": "completed"
-                                },
-                                "v": {
-                                    "int": 0
-                                }
-                            }
-                        ]
-                    }
-                }
-            }
+            "id": "2781d44e82ad834750c8fd2654faccd2db912eaa"
         }
 }
 
@@ -327,55 +356,6 @@ message (type: string): in case any additional parameter is needed to build the 
     }
   }
 }
-
-// {
-//     "seq": 1,
-//     "cmd_id": "mint_asset",
-//     "message": {
-//         "id": "2781d44e82ad834750c8fd2654faccd2db912eaa",
-//         "tx_info": {
-//         "mint_burn": [
-//                         {
-//                         "monetary_policy_index": 0,
-//                         "asset_name": "ASSET1",
-//                         "operation": {
-//                             "mint": {
-//                             "receiving_address": "addr_test1qzztka0rrj8tykgnrr9qn3yjkg7aawra4azcxkc9q56khna0yzn06hf399g6wmcqce90gxqujpzu7duaenk2t2vy3gjsaw8faa",
-//                             "amount": {
-//                                 "quantity": 2,
-//                                 "unit": "assets"
-//                             }
-//                             }
-//                         }
-//                         }
-//                     ],
-//     "passphrase": "I$t1234LuisTest",
-//     "metadata":{
-//                         "1337": {
-//                             "map": [
-//                                 {
-//                                     "k": {
-//                                         "string": "name"
-//                                     },
-//                                     "v": {
-//                                         "string": "hello world"
-//                                     }
-//                                 },
-//                                 {
-//                                     "k": {
-//                                         "string": "completed"
-//                                     },
-//                                     "v": {
-//                                         "int": 0
-//                                     }
-//                                 }
-//                             ]
-//                         }
-//                     }
-
-// }
-// }
-// }
 
 ```
 9. Delete wallet

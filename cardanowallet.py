@@ -38,13 +38,13 @@ def save_metadata( metadata):
 
     return metadata_json_file
 
-node = Node(
-CARDANO_NETWORK, 
-CARDANO_CLI_PATH,
-CARDANO_NETWORK_MAGIC,
-TRANSACTION_PATH_FILE,
-KEYS_FILE_PATH
-)
+# node = Node(
+# CARDANO_NETWORK, 
+# CARDANO_CLI_PATH,
+# CARDANO_NETWORK_MAGIC,
+# TRANSACTION_PATH_FILE,
+# KEYS_FILE_PATH
+# )
 
 def result_treatment(obj,client_id):
 
@@ -55,8 +55,8 @@ def result_treatment(obj,client_id):
 
     if obj[0]['cmd_id'] == 'query_tip':
         print('Executing query tip')
-        # result = lb.query_tip_exec()
-        result = node.query_tip_exec()
+        result = lb.query_tip_exec()
+        # result = node.query_tip_exec()
         main.update(result)
 
     # elif obj[0]['cmd_id'] == 'query_utxo':
@@ -124,11 +124,11 @@ def result_treatment(obj,client_id):
         tx_result = wallet.confirm_transaction(id,tx_id)
         main['tx_result']= tx_result
     
-    elif obj[0]['cmd_id'] == 'mint_asset':
-        print('Executing mint asset')
+    # elif obj[0]['cmd_id'] == 'mint_asset':
+    #     print('Executing mint asset')
 
-        mint = node.transactions(obj[0])
-        main['tx_result'] = mint
+    #     mint = node.transactions(obj[0])
+    #     main['tx_result'] = mint
     
     elif obj[0]['cmd_id'] == 'delete_wallet':
         print('Executing wallet deletion')

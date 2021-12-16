@@ -28,7 +28,7 @@ class Node():
         self.KEYS_FILE_PATH = params['node']['keys_path']
         if not os.path.exists(self.KEYS_FILE_PATH):
             os.makedirs(self.KEYS_FILE_PATH, exist_ok=True)
-
+        self.URL = params['node']['URL']
 
     def insert_command(self, index, step, command_string, opt_commands):
         """ function to insert commands to be executed in subprocess"""
@@ -46,27 +46,26 @@ class Node():
                 with open(self.KEYS_FILE_PATH + '/' + wallet_id + '/' + wallet_id + '.payment.addr','r') as file:
                     address = file.readlines(1)[0]
             else:
-                # addresses = wallet.get_addresses(wallet_id)
-                # for address_dict in addresses:
-                #     if address_dict['state'] == 'unused':
-                #         address=address_dict['id']
-                #         break
                 address=''
         else:
             address = wallet_id
         return address
 
-    def query_protocol(self):
+    def query_protocol(self, saving_path=''):
         """Execute query protocol parameters.
         No params needed
         Return: json file with protocol.json parameters"""
+        if saving_path == '':
+            TRANSACTION_PATH_FILE = self.TRANSACTION_PATH_FILE
+        else:
+            TRANSACTION_PATH_FILE = saving_path
+
         command_string = [
             self.CARDANO_CLI_PATH,
             'query', 'protocol-parameters',
-            '--out-file', self.TRANSACTION_PATH_FILE +'/protocol.json']
+            '--out-file', TRANSACTION_PATH_FILE +'/protocol.json']
         if self.CARDANO_NETWORK == 'testnet':
             command_string, index = self.insert_command(3,1,command_string,['--testnet-magic',self.CARDANO_NETWORK_MAGIC])
-        print(command_string)
         subprocess.check_output(command_string)
 
     def query_tip_exec(self):
@@ -136,24 +135,26 @@ class Node():
         wallet_id = self.id_to_address(wallet_id)
         transactions = self.get_transactions(wallet_id)
         balance_dict = {}
-        balance = 0
-        transactions = transactions['transactions']
-        amounts = []
-        for utxo in transactions:
-            for amount in utxo['amounts']:
-                amounts.append(amount)
-        amounts = sorted(amounts, key = itemgetter('token'))
-        for key, value in groupby(amounts, key = itemgetter('token')):
-            # print(f'The balance of "{key}" is: ')
-            for k in value:
-                balance = balance + int(k['amount'])
-                # print(k)
-            balance_dict[key]=balance
-            print(f'Total balance of "{key}" is "{balance}"')
+        if transactions == {}:
+            balance_dict['lovelace']=0
+            balance_dict['assets']=0
+        else:
+            transactions = transactions['transactions']
+            amounts = []
+            for utxo in transactions:
+                for amount in utxo['amounts']:
+                    amounts.append(amount)
+                amounts = sorted(amounts, key = itemgetter('token'))
+                for key, value in groupby(amounts, key = itemgetter('token')):
+                    balance = 0
+                    for k in value:
+                        balance = balance + int(k['amount'])
+                    balance_dict[key]=balance
+                    print(f'Total balance of "{key}" is "{balance}"')
 
         return balance_dict
 
-    def utxo_selection(self, addr_origin_tx, token, quantity, deplete):
+    def utxo_selection(self, addr_origin_tx, quantity, deplete):
         """ Function based on the coin selection algorithm to properly handle the use of utxos in the wallet. 
         Rules are:
         1. If any of your UTXO matches the Target it will be used.
@@ -179,14 +180,16 @@ class Node():
         transactions = addr_origin_tx['transactions'][:]
         for utxo in transactions:
             for amount in utxo['amounts']:
-                if amount['token']==token: 
+                if amount['token']=='lovelace': 
                     if deplete:
+                        TxHash.append('--tx-in')
                         TxHash.append([utxo['hash'] + '#' + utxo['id']])
                         amount_equal = int(amount['amount'])
                         utxo_found = True
                         break
                     if int(amount['amount']) == quantity:
-                        TxHash.append([utxo['hash'] + '#' + utxo['id']])
+                        TxHash.append('--tx-in')
+                        TxHash.append(utxo['hash'] + '#' + utxo['id'])
                         amount_equal = int(amount['amount'])
                         utxo_found = True
                         break
@@ -216,15 +219,15 @@ class Node():
                 for _ in range(999):
                     index_random = random.randint(0,len(transactions)-1)
                     utxo = transactions.pop(index_random)
-                    utxo_array.append([utxo['hash'] + '#' + utxo['id']])
+                    utxo_array.append('--tx-in')
+                    utxo_array.append(utxo['hash'] + '#' + utxo['id'])
                     for amount in utxo['amounts']:
-                        if amount['token']==token: 
+                        if amount['token']=='lovelace': 
                             amount_array.append(int(amount['amount']))
                     if sum(amount_array) >= quantity + minUTXO:
                         amount_equal = sum(amount_array)
                         break
-                TxHash.append('--tx-in')
-                TxHash.append(utxo_array)
+                TxHash = utxo_array
 
         return TxHash, amount_equal
 
@@ -242,7 +245,7 @@ class Node():
             '--tx-in-count', tx_in_count,
             '--tx-out-count', tx_out_count,
             '--witness-count', str(1),
-            # '--testnet-magic', str(self.CARDANO_NETWORK_MAGIC),
+            # '--byron-witness-count', str(0),
             '--protocol-params-file', self.TRANSACTION_PATH_FILE + '/protocol.json']
         if self.CARDANO_NETWORK == 'testnet':
             command_string, index = self.insert_command(11,1,command_string,['--testnet-magic',self.CARDANO_NETWORK_MAGIC])
@@ -251,7 +254,7 @@ class Node():
         rawResult = rawResult[0]
         return rawResult
 
-    def build_raw_tx(self, TxHash, addr, fee, metadata_json_file, mint, script):
+    def build_raw_tx(self, TxHash_array, addr_array, fee, metadata_json_file, mint, script):
         """
         Transaction build raw.
         :param: 
@@ -269,15 +272,15 @@ class Node():
             '--fee', str(fee),
             '--out-file', self.TRANSACTION_PATH_FILE + '/tx.draft']
         i = 0
-        command_string, index = self.insert_command(3+i,1,command_string,TxHash)
+        command_string, index = self.insert_command(3+i,1,command_string,TxHash_array)
         i = i + index
-        command_string, index = self.insert_command(3+i,1,command_string,addr)
+        command_string, index = self.insert_command(3+i,1,command_string,addr_array)
         i = i + index
         metadata = []
         if metadata_json_file != '':
             metadata.append('--metadata-json-file')
             metadata.append(metadata_json_file)
-            command_string, index = self.insert_command(3+i,1,command_string,addr)
+            command_string, index = self.insert_command(3+i,1,command_string,metadata)
         i = i + index
         mint_array = []
         if mint != []:
@@ -328,7 +331,7 @@ class Node():
         utils.save_files(path, wallet_id + '.policyID',str(policyID))
         return policyID
 
-    def sign_transaction(self, wallet_id, mint):
+    def sign_transaction(self, wallet_id, policyid):
         """Sign the transaction based on tx_raw file.
             For the time being not handling multi-witness"""
         command_string = [
@@ -340,11 +343,11 @@ class Node():
             '--out-file', self.TRANSACTION_PATH_FILE + '/tx.signed']
         i = 0
         mint_array = []
-        if mint != []:
+        if policyid != '':
             mint_array.append('--signing-key-file')
-            mint_array.append(self.KEYS_FILE_PATH + '/' + wallet_id + '/minting/' + wallet_id + '.policy.skey')
+            mint_array.append(self.KEYS_FILE_PATH + '/' + wallet_id + '/minting/' + policyid + '.policy.skey')
             command_string, index = self.insert_command(7+i,1,command_string,mint_array)  
-        i = i + index       
+            i = i + index       
         if self.CARDANO_NETWORK == 'testnet':
             command_string, index = self.insert_command(7+i,1,command_string,['--testnet-magic',self.CARDANO_NETWORK_MAGIC])
         
@@ -365,117 +368,235 @@ class Node():
     def transactions(self, params):
         """Handle transactions specially minting. 
             Params:
-                params = {
-                    "metadata": metadata,
-                    "mint": {
-                                        "mint_wallet_id": "987f6d81f4f72c484f6d34c53e7d7f2719f40705",
-                                        "tokens":[
-                                            {
-                                                "name": "testtoken",
-                                                "amount": 20,
-                                                "policyID": '205a5880aebba0d1e330bb652114e3baea52542d4c0cb2defe26d5c9',
-                                            }
-                                        ]
-                                    }
+            params   = {     
+            "message": {
+            "tx_info": {
+            "mint": {
+                "id": id,
+                "metadata": metadata,
+                "address": "addr_test1qzfxu7zhedzn86v95k84m7t94z3eek99al4xlyahkuw8ammjkcctzvtrmt0chuqgaphal08kaqhn0gn295v7wefe95eqvh5ndl",
+                "tokens": [
+                {
+                    "name": "miprueba",
+                    "amount": 47,
+                    "policyID": {}
                 }
-                mint_wallet_id: origin and destin wallet id
+                ]
+            }
+            }
+        }
+        }
             Return: 
         """
-        minUTXOValue = 1000000
+        data = {}
+        id = params['message']['tx_info']['id']
+        data['payments'] = params['message']['tx_info']['payments']
+        data['metadata'] = params['message']['tx_info']['metadata']
+        data['withdrawal']='self'      
+        random_coin_selection_file = Wallet.random_coin_selection(self, id, data)
+        print(random_coin_selection_file)
+        
+        deplete = False
+        quantity_input_array = []
 
-        addr_origin = params['message']['tx_info']['mint']['address']
-        addr_origin_tx = self.get_transactions(addr_origin)
-        addr_zero = []
+        for inputs in random_coin_selection_file['inputs']:
+            addr_origin = inputs['address']
+            addr_origin_tx = self.get_transactions(addr_origin)
+            quantity_input = inputs['amount']['quantity']
+            quantity_input_array.append(quantity_input)
+            derivation_path = inputs['derivation_path']
+            utils.topayment_wallet(id,derivation_path)
+            TxHash_in_array, amount_equal_array = self.utxo_selection(addr_origin_tx,quantity_input,deplete)
+            
+        print(TxHash_in_array, amount_equal_array)
 
-        balance = self.get_balance(addr_origin)
-        print(balance)
+        addr_output_array = []
+        quantity_output_array = []
+        for outputs in random_coin_selection_file['outputs']:
+            addr_destination = outputs['address']
+            quantity_output = outputs['amount']['quantity']
+            quantity_output_array.append(quantity_output)
+            addr_output_array.append('--tx-out')
+            if inputs['assets'] != []:
+                policyid_output = inputs['assets']['policy_id']
+                asset_name_output = inputs['assets']['name']
+                asset_quantity_output = inputs['assets']['quantity']
+                addr_output_array.append(addr_destination + '+' + str(quantity_output) + '+' + str(asset_quantity_output) + ' ' + str(policyid_output) + '.' + str(asset_name_output))
+            
+            else:
+                addr_output_array.append(addr_destination + '+' + str(quantity_output))
+        
+        for changes in random_coin_selection_file['change']:
+            addr_change = changes['address']
+            quantity_change = changes['amount']['quantity']
+            quantity_output_array.append(quantity_change)
+            addr_output_array.append('--tx-out')
+            if inputs['assets'] != []:
+                policyid_change = inputs['assets']['policy_id']
+                asset_name_change = inputs['assets']['name']
+                asset_quantity_change = inputs['assets']['quantity']
+                addr_output_array.append(addr_change + '+' + str(quantity_change) + '+' + str(asset_quantity_change) + ' ' + str(policyid_change) + '.' + str(asset_name_change))
+            else:
+                addr_output_array.append(addr_change + '+' + str(quantity_change))
+        
+        fee = sum(quantity_input_array) - sum(quantity_output_array)
+
         # Check if minting tokens as part of the transaction
         mint = []
         script_path = ''
-        
-        if params['message']['tx_info']['mint'] is not {}:
+        mint_info = params['message']['tx_info']['mint']
+        if mint_info != []:
             # Reading param and setting variables
+            for token_info in mint_info:
+                tokenname = token_info['name']
+                tokenamount_mint = token_info['amount']
+                policyid = token_info['policyID']
+                script_path = self.KEYS_FILE_PATH + '/' + id + '/minting/' + id + '.policy.script'
 
-            tokenamount_mint = params['message']['tx_info']['mint']['tokens'][0]['amount']
-            tokenname = params['message']['tx_info']['mint']['tokens'][0]['name']
-            wallet_id = params['message']['tx_info']['mint']['id']
-            metadata = params['message']['tx_info']['mint']['metadata']
-            policyid = params['message']['tx_info']['mint']['tokens'][0]['policyID']
-            script_path = self.KEYS_FILE_PATH + '/' + wallet_id + '/minting/' + wallet_id + '.policy.script'
-
-            if policyid == "":
-                # Create keys and policy IDs
-                policy_script, policyid = utils.create_minting_policy(wallet_id)
-            else:
-                policyid = params['message']['tx_info']['mint']['tokens'][0]['policyID']
-                with open(script_path) as file:
-                    policy_script = json.load(file)
-
-            if policyid + '.' + tokenname in balance:
-                tokenbalance = balance[policyid + '.' + tokenname]
-            else:
-                tokenbalance = 0
-
-            target = minUTXOValue
-            target_calculated = target + 200000
-            tokenbalance = tokenbalance + tokenamount_mint
+                if policyid == '':
+                    # Create keys and policy IDs
+                    policy_script, policyid = utils.create_minting_policy(id)
+                else:
+                    policyid = token_info['policyID']
+                    with open(script_path) as file:
+                        policy_script = json.load(file)
 
             
             mint = '--mint=' + str(tokenamount_mint) + ' ' + str(policyid) + '.' + str(tokenname)
-            addr_zero.append('--tx-out')
-            addr_zero.append(addr_origin + '+' + str(0) + '+' + str(tokenbalance) + ' ' + str(policyid) + '.' + str(tokenname))
 
-        deplete = False
-        TxHash_in, amount_equal = self.utxo_selection(addr_origin_tx,'lovelace',target_calculated,deplete)
-
+        metadata = params['message']['tx_info']['metadata']
         metadata_json_file = utils.save_metadata(self.TRANSACTION_PATH_FILE, metadata)
                 
-        ###########################
-        # Section to calculate min fees
-        ###########################
+        #Create the tx_raw file
+        self.build_raw_tx(TxHash_in_array, addr_output_array, fee, metadata_json_file, mint, script_path)
 
-        #Create the tx_raw file to calculate the min fee
-        self.build_raw_tx(TxHash_in, addr_zero, 0, metadata_json_file, mint, script_path)
-        #Calculate min fees based on previously tx_raw file
-        fee = self.tx_min_fee(str(len(TxHash_in)),str(len(addr_zero)))
-        fee = int(fee.decode('utf-8'))
-        print(fee)
-        
-
-        ###########################
-        # Section to build the actual transaction including fees
-        ###########################
-        addr = []
-        target = amount_equal - fee
-        addr.append('--tx-out')
-        addr.append(addr_origin + '+' + str(int(target)) + '+' + str(tokenbalance) + ' ' + str(policyid) + '.' + str(tokenname))
-
-        # #Create the tx_raw file with the fees included
-            
-        self.build_raw_tx(TxHash_in, addr, fee, metadata_json_file, mint, script_path)
-
-        print("################################")
-        print("Minting '{}' of {}. Fees are: {}".format(tokenamount_mint, tokenname, fee))
-        print("################################")
-
-        self.sign_transaction(wallet_id,mint)
+        policyid_mint = ''
+        self.sign_transaction(id,policyid_mint)
         self.submit_transaction()
-        mint = {
-            "policyid": policyid,
-            "asset_name": tokenname,
-            "quantity_mint": tokenamount_mint,
-            "fees": fee,
-            "address_destin": addr_origin,
-            "metadata": metadata,
-            "policy_script": policy_script,
-        }
+
+    def minting(self, params):
+        id = params['message']['tx_info']['id']
+        addresses = Wallet.get_addresses(self, id, 'used')
+        for address in addresses:
+            address_origin = address['id']
+            derivation_path = address['derivation_path']
+            addr_origin_tx = self.get_transactions(address_origin)
+            if addr_origin_tx != {}:
+                addr_origin_balance = self.get_balance(address_origin)
+                if addr_origin_balance['lovelace'] > 2_300_000:
+                    break
+        utils.topayment_wallet(id,derivation_path)
+        
+        if addr_origin_balance != {}:
+
+
+            # Check if minting tokens as part of the transaction
+            script_path = ''
+
+            deplete = False
+            addr_output_array = []
+
+            mint_info = params['message']['tx_info']['mint']
+            mint_string = ''
+            policyid = ''
+            for token_info in mint_info:
+                asset_name = token_info['name']
+                asset_quantity = int(token_info['amount'])
+                policyid = token_info['policyID']
+
+                if policyid == '':
+                    # Create keys and policy IDs
+                    policy_script, policyid = utils.create_minting_policy(id)
+                    script_path = self.KEYS_FILE_PATH + '/' + id + '/minting/' + policyid + '.policy.script'
+                else:
+                    policyid = token_info['policyID']
+                    script_path = self.KEYS_FILE_PATH + '/' + id + '/minting/' + policyid + '.policy.script'
+                    with open(script_path) as file:
+                        policy_script = json.load(file)
+                
+                if policyid + '.' + asset_name in addr_origin_balance:
+                    asset_balance = addr_origin_balance[policyid + '.' + asset_name]
+                else:
+                    asset_balance = 0
+                
+                minUTXOValue = 1_000_000
+                target_calculated = minUTXOValue + 300000
+                asset_balance = asset_balance + asset_quantity
+
+                asset_mint_string = str(asset_quantity) + ' ' + str(policyid) + '.' + str(asset_name)
+
+                mint_string = mint_string  + asset_mint_string
+            
+            asset_string = ''
+            for key, value in addr_origin_balance.items():
+                if key != 'lovelace':
+                    asset_string = asset_string + ' + ' + str(value) + ' ' + str(key)
+
+            asset_string = asset_string + '+' + mint_string
+            mint_string = '--mint=' + mint_string
+
+            addr_output_array.append('--tx-out')
+            
+            addr_output_array.append(address_origin + '+' + str(0) + asset_string)
+
+            deplete = False
+            TxHash_in, amount_equal = self.utxo_selection(addr_origin_tx,target_calculated,deplete)
+            
+            metadata = params['message']['tx_info']['metadata']
+            metadata_json_file = utils.save_metadata(self.TRANSACTION_PATH_FILE, metadata)
+            
+            ###########################
+            # Section to calculate min fees
+            ###########################
+
+            #Create the tx_raw file to calculate the min fee
+            self.build_raw_tx(TxHash_in, addr_output_array, 0, metadata_json_file, mint_string, script_path)
+            #Calculate min fees based on previously tx_raw file
+            fee = self.tx_min_fee(str(len(TxHash_in)),str(len(addr_output_array)))
+            fee = int(fee.decode('utf-8'))
+            print(fee)
+
+            ###########################
+            # Section to build the actual transaction including fees
+            ###########################
+            addr_output_array = []
+            target = amount_equal - fee
+            addr_output_array.append('--tx-out')
+            addr_output_array.append(address_origin + '+' + str(target) + asset_string)
+
+            # #Create the tx_raw file with the fees included
+                
+            self.build_raw_tx(TxHash_in, addr_output_array, fee, metadata_json_file, mint_string, script_path)
+
+            print("################################")
+
+            self.sign_transaction(id,policyid)
+            self.submit_transaction()
+            mint = {
+                "message":{
+                "policyid": policyid,
+                "asset_name": asset_name,
+                "quantity_mint": asset_quantity,
+                "fees": fee,
+                "destination_address": address_origin,
+                "metadata": metadata,
+                "policy_script": policy_script,
+                },
+                "code": "Mint¡¡"
+            }
+        else:
+            mint = {
+                'message':"Not enough funds for minting",
+                'code': "Not enough funds for minting",
+            }
+        
         return mint
 
+       
 
 class Wallet():
 
-    def __init__(self, working_dir) -> None:
-        
+    def __init__(self, working_dir):
         with open(working_dir + '/config_file.json') as file:
             params=json.load(file)
         
@@ -488,7 +609,7 @@ class Wallet():
         wallets_info = requests.get(request_status_url)
         return wallets_info.json()
 
-    def generate_mnemonic(self, size):
+    def generate_mnemonic(self, size=24):
         """Create mnemonic sentence (list of mnemonic words)
         Input: size number of words: 24 by default"""
         try:
@@ -527,12 +648,20 @@ class Wallet():
         wallet_info = requests.get(request_status_url)
         return wallet_info.json()
 
-    def get_addresses(self, id):
+    def get_addresses(self, id,addr_state):
         """Get only unused addresses for specific wallet
-        Inputs: Id of the wallet
+        Inputs: Id of the wallet, addr_state: used, unused, all
         """
-        #Get only unused addresses
-        request_address_url = self.URL + id + '/addresses?state=unused'
+        if addr_state == 'used':
+            #Get only used addresses
+            request_address_url = self.URL + id + '/addresses?state=used'
+        elif addr_state == 'unused':
+            #Get only unused addresses
+            request_address_url = self.URL + id + '/addresses?state=unused'
+        else: 
+            #Get only all addresses
+            request_address_url = self.URL + id + '/addresses'
+
         addresses = requests.get (request_address_url)
         return addresses.json()
 
@@ -542,18 +671,25 @@ class Wallet():
         """
         request_status_url = self.URL + id
         r = requests.delete(request_status_url)
-        try:
-            r.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            # Whoops it wasn't a 200
-            return "Error: " + str(e)
-        return r.json()
+        print(r.status_code)
+        if r.status_code==204:
+            r={
+                'message':"wallet succesfully deleted",
+                'code': "wallet_succesfully_deleted",
+            }
+        return r
 
     def min_fees(self, id, data):
         """ Estimate min fees for the transaction
         Inputs: Id of the wallet
                 data with details of the transactio like metadata, address to, amount, etc
         Return: estimated_min, estimated_max, minimum_coins, deposit"""
+
+        data["time_to_live"]={
+                        "quantity": 10,
+                        "unit": "second"
+                        }
+        data["withdrawal"]="self"
         request_address_url = self.URL + id + '/payment-fees'
         r = requests.post(request_address_url, json=data)
         r = r.json()
@@ -575,6 +711,7 @@ class Wallet():
         Inputs: Id of the wallet
         Return: json with details of the transaction and the status """
         request_address_url = self.URL + id + '/transactions/' + tx_id
+        # request_address_url = self.URL + id + '/utxo'
         r = requests.get(request_address_url)
         r = r.json()
         return r
@@ -594,6 +731,20 @@ class Wallet():
         """
         request_address_url = self.URL + id + '/assets'
         r = requests.get(request_address_url)
+        r = r.json()
+        return r
+
+    def random_coin_selection(self, id, data):
+        """Select coins to cover the given set of payments
+        Inputs: Id of the wallet
+            data with list of payments, withdrawal and metadata
+        Return: list of transaction inputs and a list of target outputs with amount specified and
+        a list of transacion change outputs
+        """
+
+        request_address_url = self.URL + id + '/coin-selections/random'
+        r = requests.post(request_address_url, json=data)
+
         r = r.json()
         return r
 
@@ -631,7 +782,7 @@ class IOT(Node, Wallet):
             id = wallet_status['id']
             utils.towallet(id, mnemonic)
 
-            address = Wallet.get_addresses(self, wallet_status['id'])
+            address = Wallet.get_addresses(self, wallet_status['id'], 'unused')
             main['address']=address
 
         elif obj[0]['cmd_id'] == 'wallet_info':
@@ -639,18 +790,13 @@ class IOT(Node, Wallet):
             id = obj[0]['message']['id']
             wallet_info = Wallet.wallet_info(self, id)
             main['wallet_info']=wallet_info
-            address = Wallet.get_addresses(self, id)
+            address = Wallet.get_addresses(self, id, 'unused')
             main['address']=address
         
         elif obj[0]['cmd_id'] == 'min_fees':
             print('Executing min fees')
             id = obj[0]['message']['id']
             tx_info = obj[0]['message']['tx_info']
-            tx_info["time_to_live"]={
-                            "quantity": 10,
-                            "unit": "second"
-                            }
-            tx_info["withdrawal"]="self"
             tx_result = Wallet.min_fees(self, id, tx_info)
             main['min_fees']= tx_result
         
@@ -663,6 +809,7 @@ class IOT(Node, Wallet):
                             "unit": "second"
                             }
             tx_info["withdrawal"]="self"
+            print(tx_info)
             tx_result = Wallet.send_transaction(self, id, tx_info)
             main['tx_result']= tx_result
         
@@ -673,21 +820,16 @@ class IOT(Node, Wallet):
             tx_result = Wallet.confirm_transaction(self, id, tx_id)
             main['tx_result']= tx_result
         
-        elif obj[0]['cmd_id'] == 'mint_asset':
-            print('Executing mint asset')
+        elif obj[0]['cmd_id'] == 'send_transaction_2':
+            print('Executing send_transaction_2')
 
-            mint = Node.transactions(self, obj[0])
-            main['tx_result'] = mint
+            Node.transactions(self, obj[0])
         
         elif obj[0]['cmd_id'] == 'delete_wallet':
             print('Executing wallet deletion')
             id = obj[0]['message']['id']
             print(id)
             wallet_info = Wallet.delete_wallet(self, id)
-            if wallet_info=={}:
-                wallet_info={
-                    'message':"wallet succesfully deleted",
-                }
             main['tx_result'] = wallet_info
 
         elif obj[0]['cmd_id'] == 'assets_balance':
@@ -695,6 +837,21 @@ class IOT(Node, Wallet):
             id = obj[0]['message']['id']
             assets_balance = Wallet.assets_balance(self, id)
             main['assets_balance']=assets_balance
+        
+        elif obj[0]['cmd_id'] == 'random_coin_selection':
+            print('Executing random coin selection')
+            id = obj[0]['message']['id']
+            tx_info = obj[0]['message']['tx_info']
+            tx_info["withdrawal"]="self"
+            random_coin_selection = Wallet.random_coin_selection(self, id, tx_info)
+            main['random_coin_selection']=random_coin_selection
     
+
+        elif obj[0]['cmd_id'] == 'mint_asset':
+            print('Executing mint asset')
+
+            mint = Node.minting(self, obj[0])
+            main['tx_result'] = mint
+
         obj.pop(0)
         return main
