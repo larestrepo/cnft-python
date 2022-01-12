@@ -283,8 +283,21 @@ message (type: string): in case any additional parameter is needed to build the 
 
 
 ```
+8. Confirm transaction by tx id
+```json
+{
+        "seq": 1,
+        "cmd_id": "confirm_transaction_by_tx",
+        "message": {
+            "id": "2781d44e82ad834750c8fd2654faccd2db912eaa",
+            "tx_id": "b9f044b9c1f4f981ede4f576b0aee37a2b3b0d153c924d69763daa392822c0ae"
+        }
+}
 
-8. Mint token
+
+```
+
+9. Mint token
 ```json
 
 {
@@ -309,7 +322,7 @@ message (type: string): in case any additional parameter is needed to build the 
 }
 
 ```
-9. Delete wallet
+10. Delete wallet
 
 ```json
 {
@@ -320,7 +333,7 @@ message (type: string): in case any additional parameter is needed to build the 
   }
 }
 ```
-10. assets info
+11. assets info
 ```json
 {
   "seq": 1,
@@ -330,7 +343,7 @@ message (type: string): in case any additional parameter is needed to build the 
   }
 }
 ```
-11. Get transactions
+12. Get transactions
 ```json
 {
   "seq": 1,
