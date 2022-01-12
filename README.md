@@ -2,15 +2,18 @@
 
 There are 2 ways to interact with this library.
 
-1. With Cardano node and Cardano wallet installed (installation instruction in separate file) you can just simple installed the CardanoPython SDK and start to use it:
+1. With Cardano node and Cardano wallet installed (installation instruction in separate file) you can just simply install the CardanoPython SDK and start using it:
+[Cardano_installation.md](https://github.com/larestrepo/cnft-python/blob/main/cardano_installation.md).
 
-2. If you want to use this library but don't have Cardano node or Cardano wallet installed then you need to configure your server/interface as a client API. We are using IOT core to open a websocket and allow the communication with our infrastructure. Instructions below.
+2. If you want to use this library but don't have installed Cardano node or Cardano wallet, then you need to configure your server/interface as a client API. We are using IOT core to open a websocket subscription to allow communication with our infrastructure. Instructions below.
 ##
 
 ### Prerequesites
 
-1. Cardano-node running (separate readme file explaining how to build it)
-2. Cardano wallet running (separate readme file explaining how to build it). Some of the built in functionalities can be covered from CLI but there are some functionalities that we want to make them through the API wallet.
+1. Cardano-node running
+2. Cardano wallet running. Some of the built-in functionalities can be covered from CLI but there are some functionalities that we want to make them through the API wallet.
+
+
 
 This library relies on a file called config_file.json
 
@@ -51,7 +54,9 @@ b. Node class
 - get_balance
 - minting
 
-To instantiate the class, just called with working directory param
+To instantiate the class, just call it with the working directory param. The working directory path must contain the config_file.json file.
+
+For example:
 
 ```python
 from node_lib import Wallet
@@ -63,69 +68,15 @@ wallet = Wallet(working_dir)
 list_wallets = wallet.list_wallets()
 print(list_wallets)
 
-
-
-generate_mnemonic
+mnemonic = wallet.generate_mnemonic(24)
+print(mnemonic)
 ```
 
+For a full list of methods available and the usage see:
+[wallet_lib_use](https://github.com/larestrepo/cnft-python/blob/main/wallet_lib_use.py)
 
 
-
-
-3. AWS IOT Core configured. Basic instructions are explained here. 
-
-### Configure Virtual Environment for Python
-
-    sudo apt update && upgrade -y
-
-Command for python3
-
-    sudo apt install python3-pip
-    pip3 --version
-    sudo -H pip3 install -upgrade pip
-    sudo -H pip3 install virtualenv virtualenvwrapper
-
-Setting up env variables for the virtual environment
-
-    echo "export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3" >> ~/.bashrc
-    echo "export WORKON_HOME=~/Env" >> ~/.bashrc
-    echo "source /usr/local/bin/virtualenvwrapper.sh" >> ~/.bashrc
-    source ~/.bashrc
-
-Create the virtual environment
-
-    mkvirtualenv <name of the virtual environment>
-
-The virtual env wrapper should do all the work for you, install python inside and launch it.
-
-Everytime you want to start the virtualenv just type: workon <name of the virtual environment>
-
-    pip3 install -r requirements.txt
-
-However aws-iot-device-sdk-python-v2 should be installed manually
-
-    sudo sudo apt update
-    sudo apt install cmake
-    sudo apt install python3-dev
-
-    cd ~/git
-
-    git clone https://github.com/aws/aws-iot-device-sdk-python-v2.git
-    python3 -m pip install ./aws-iot-device-sdk-python-v2
-
-
-
-### Clone the repository
-
-    cd ~/git
-    git clone https://github.com/larestrepo/cnft-python.git
-    cd cnft-python
-
-With the virtual environment active:
-
-    pip install -r requirements.txt
-
-If requirements.txt still contains the aws-iot-device-sdk-python-v2 remove it, otherwise it will throw errors.
+3. AWS IOT Core configure. Basic instructions are explained here. 
 
 #
 
@@ -162,7 +113,7 @@ Ref: https://docs.aws.amazon.com/iot/latest/developerguide/server-authentication
 
 5. (Optional) Start the app (AWS-thing.py) 
 
-If you subscribe in AWS IoT, you should be see a return message similar to: 
+If you subscribe in AWS IoT, you should see a return message similar to: 
 
 ```json
 {
@@ -376,6 +327,16 @@ message (type: string): in case any additional parameter is needed to build the 
   "cmd_id": "assets_balance",
   "message": {
 		"id": "id"
+  }
+}
+```
+11. Get transactions
+```json
+{
+  "seq": 1,
+  "cmd_id": "get_transactions",
+  "message": {
+		"address": "address"
   }
 }
 ```

@@ -9,12 +9,12 @@ import time
 from uuid import uuid4
 import json
 from datetime import datetime
-import cardanowallet as cw
 from node_lib import IOT
 
 # Load files and config parameters
+working_dir = "/home/cardanodatos/git/cnft-python/"
 
-with open('./config_file.json') as file:
+with open(working_dir + 'config_file.json') as file:
     params=json.load(file)
 
 endpoint = params['AWS_IOT']['endpoint']
@@ -26,7 +26,6 @@ verbosity = params['AWS_IOT']['verbosity']['NoLogs']
 signing_region = params['AWS_IOT']['signing_region']
 topic = params['AWS_IOT']['topic']
 client_id = "test-" + str(uuid4())
-working_dir = "/home/cardanodatos/git/cnft-python/"
 
 io.init_logging(getattr(io.LogLevel, verbosity), 'stderr')
 

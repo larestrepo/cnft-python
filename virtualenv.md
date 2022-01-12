@@ -1,5 +1,6 @@
 # Setting up the virtual environment for the first time
 
+    sudo apt install python-pip
     sudo -H pip3 install --upgrade pip
     sudo -H pip3 install virtualenv virtualenvwrapper
 
@@ -10,6 +11,6 @@
 
 ### Create the virtual environment
 
-    mkvirtualenv cnft
+    mkvirtualenv <name of the virtual environment>
 
 

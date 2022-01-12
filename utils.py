@@ -3,6 +3,7 @@ import subprocess
 from decouple import config
 import json
 
+
 with open('./config_file.json') as file:
     params=json.load(file)
 keys_file_path = params['node']['keys_path']

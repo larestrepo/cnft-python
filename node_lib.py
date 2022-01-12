@@ -706,12 +706,20 @@ class Wallet():
         r = r.json()
         return r
 
-    def confirm_transaction(self, id, tx_id):
+    def confirm_transaction(self, id):
+        """Lists all incoming and outgoing wallet's transactions.
+        Inputs: Id of the wallet
+        Return: json with details of the transaction and the status """
+        request_address_url = self.URL + id + '/transactions'
+        r = requests.get(request_address_url)
+        r = r.json()
+        return r
+    
+    def confirm_transaction_by_tx(self, id, tx_id):
         """Lists all incoming and outgoing wallet's transactions.
         Inputs: Id of the wallet
         Return: json with details of the transaction and the status """
         request_address_url = self.URL + id + '/transactions/' + tx_id
-        # request_address_url = self.URL + id + '/utxo'
         r = requests.get(request_address_url)
         r = r.json()
         return r
@@ -814,11 +822,21 @@ class IOT(Node, Wallet):
             main['tx_result']= tx_result
         
         elif obj[0]['cmd_id'] == 'confirm_transaction':
+            print('Executing confirmation of all the transactions')
+            id = obj[0]['message']['id']
+            transactions = Wallet.confirm_transaction(self, id)
+            main['tx_result'] = {
+                'transactions': transactions
+            }
+        
+        elif obj[0]['cmd_id'] == 'confirm_transaction_by_tx':
             print('Executing confirmation of the transaction')
             id = obj[0]['message']['id']
             tx_id = obj[0]['message']['tx_id']
-            tx_result = Wallet.confirm_transaction(self, id, tx_id)
-            main['tx_result']= tx_result
+            transactions = Wallet.confirm_transaction_by_tx(self, id, tx_id)
+            main['tx_result'] = {
+                'transactions_by_tx': transactions
+            }
         
         elif obj[0]['cmd_id'] == 'send_transaction_2':
             print('Executing send_transaction_2')
@@ -845,13 +863,26 @@ class IOT(Node, Wallet):
             tx_info["withdrawal"]="self"
             random_coin_selection = Wallet.random_coin_selection(self, id, tx_info)
             main['random_coin_selection']=random_coin_selection
-    
 
         elif obj[0]['cmd_id'] == 'mint_asset':
             print('Executing mint asset')
 
             mint = Node.minting(self, obj[0])
             main['tx_result'] = mint
+
+        elif obj[0]['cmd_id'] == 'get_transactions':
+            print('Executing get transactions')
+            
+            transactions = Node.get_transactions(self,obj[0]['message']['address'])
+            main['tx_result'] = transactions
+
+        elif obj[0]['cmd_id'] == 'get_balance':
+            print('Executing get balance')
+
+            balance = Node.get_balance(self,obj[0]['message']['address'])
+            main['tx_result'] = {
+                'balance': balance
+            }
 
         obj.pop(0)
         return main
