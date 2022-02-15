@@ -304,14 +304,14 @@ class Node():
         
         # Generate key pairs for minting associated to specific policy script
         command_string = [
-            'cardano-cli', 'address', 'key-gen', '--verification-key-file', path + wallet_id + '.policy.vkey',
-        '--signing-key-file', path + wallet_id + '.policy.skey'
+            'cardano-cli', 'address', 'key-gen', '--verification-key-file', path + 'tmp.policy.vkey',
+        '--signing-key-file', path + 'tmp.policy.skey'
         ]
         subprocess.run(command_string)
 
         #Create policy script and save file policy.script
         command_string = [
-        'cardano-cli', 'address', 'key-hash', '--payment-verification-key-file', path + wallet_id + '.policy.vkey'
+        'cardano-cli', 'address', 'key-hash', '--payment-verification-key-file', path + 'tmp.policy.vkey'
         ]
         output = subprocess.Popen(command_string,stdout=subprocess.PIPE)
 
@@ -320,16 +320,19 @@ class Node():
             "type": "sig"
         }
 
-        with open(path + '/' + wallet_id + '.policy.script','w') as file:
+        with open(path + 'tmp.policy.script','w') as file:
             json.dump(policy_script, file, indent=4, ensure_ascii=True)
 
         # Generate policyID from the policy script file
         command_string = [
-        'cardano-cli', 'transaction', 'policyid', '--script-file', path + wallet_id + '.policy.script'
+        'cardano-cli', 'transaction', 'policyid', '--script-file', path + 'tmp.policy.script'
         ]
         output = subprocess.Popen(command_string,stdout=subprocess.PIPE)
         policyID = str(output.communicate()[0].decode('utf-8')).rstrip()
-        utils.save_files(path, wallet_id + '.policyID',str(policyID))
+        utils.save_files(path, policyID + '.policyID',str(policyID))
+        os.rename(path + 'tmp.policy.script', path + '/' + policyID + '.policy.script')
+        os.rename(path + 'tmp.policy.vkey', path + '/' + policyID + '.policy.vkey')
+        os.rename(path + 'tmp.policy.skey', path + '/' + policyID + '.policy.skey')
         return policy_script, policyID
 
     def sign_transaction(self, wallet_id, policyid):
@@ -510,8 +513,8 @@ class Node():
 
                 if policyid == '':
                     # Create keys and policy IDs
-                    policy_script, policyid = utils.create_minting_policy(id)
-                    # policy_script, policyid = self.create_minting_policy(id)
+                    # policy_script, policyid = utils.create_minting_policy(id)
+                    policy_script, policyid = self.create_minting_policy(id)
                     script_path = self.KEYS_FILE_PATH + '/' + id + '/minting/' + policyid + '.policy.script'
                 else:
                     policyid = token_info['policyID']
@@ -874,6 +877,12 @@ class IOT(Node, Wallet):
             tx_info["withdrawal"]="self"
             random_coin_selection = Wallet.random_coin_selection(self, id, tx_info)
             main['random_coin_selection']=random_coin_selection
+
+        elif obj[0]['cmd_id'] == 'create_minting_policy':
+            print('Executing creation of minting policy')
+            id = obj[0]['message']['id']
+            policy_script, policyID = Node.create_minting_policy(self, id)
+            main['tx_result'] = policyID
 
         elif obj[0]['cmd_id'] == 'mint_asset':
             print('Executing mint asset')

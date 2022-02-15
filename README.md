@@ -366,6 +366,16 @@ message (type: string): in case any additional parameter is needed to build the 
   }
 }
 ```
+14. Generate policyID
+```json
+{
+  "seq": 1,
+  "cmd_id": "create_minting_policy",
+  "message": {
+            "id": "id"
+  }
+}
+```
 
 
 
