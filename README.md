@@ -192,7 +192,18 @@ message (type: string): in case any additional parameter is needed to build the 
   "message": ""
 }
 ```
-2. generate_new_mnemonic_phrase
+
+2. List all known wallets
+
+```json
+{
+  "seq": 1,
+  "cmd_id": "list_wallets",
+  "message": ""
+}
+```
+
+3. generate_new_mnemonic_phrase
 ```json
 {
   "seq": 1,
@@ -202,7 +213,7 @@ message (type: string): in case any additional parameter is needed to build the 
   }
 }
 ```
-3. generate wallet
+4. generate wallet
 ```json
 {
   "seq": 1,
@@ -214,7 +225,7 @@ message (type: string): in case any additional parameter is needed to build the 
   }
 }
 ```
-4. wallet info
+5. wallet info
 ```json
 {
   "seq": 1,
@@ -224,7 +235,7 @@ message (type: string): in case any additional parameter is needed to build the 
   }
 }
 ```
-5. min fees
+6. min fees
 ```json
 {
     "seq": 1,
@@ -247,7 +258,7 @@ message (type: string): in case any additional parameter is needed to build the 
     }
 }
 ```
-6. Send transactions
+7. Send transactions
 ```json
 {
     "seq": 1,
@@ -271,7 +282,7 @@ message (type: string): in case any additional parameter is needed to build the 
     }
 }
 ```
-7. Confirm transaction
+8. Confirm transaction
 ```json
 {
         "seq": 1,
@@ -283,7 +294,7 @@ message (type: string): in case any additional parameter is needed to build the 
 
 
 ```
-8. Confirm transaction by tx id
+9. Confirm transaction by tx id
 ```json
 {
         "seq": 1,
@@ -297,32 +308,34 @@ message (type: string): in case any additional parameter is needed to build the 
 
 ```
 
-9. Mint token
+10. Mint token
 ```json
 
 {
   "seq": 1,
   "cmd_id": "mint_asset",
   "message": {
-    "tx_info": {
-      "mint": {
-        "id": "6c8eadf91ae46e93d953657ac968fbd4b8f0afed",
-        "metadata": {},
-        "address": "addr_test1qpjltzup7mjfk9vhrj4ltv6sduwv427nmjqf623jje7zt5qytthp9vmrx4y8t4kwk73jlxxsqwu75fd4dx5k5uzl54rsh4wu29",
-        "tokens": [
-          {
-            "name": "testtokens2",
-            "amount": 35,
-            "policyID": "1f4df2e4cb4c94705bed1312646d95c9b0f4ec342445619c65593601"
-          }
-        ]
-      }
-    }
+    "tx_info":{
+            "id": "689f3a6a8132d58fbefe9673bcbe39f1cd8307c4",
+            "metadata": {
+                "4567":{
+                    "título": "Graduación",
+                    "Institución": "ACME"
+                }
+            },
+            "mint": [
+                {
+                    "name": "PruebaTolima",
+                    "amount": 1,
+                    "policyID":"",
+                },
+            ],
+        }
   }
 }
 
 ```
-10. Delete wallet
+11. Delete wallet
 
 ```json
 {
@@ -333,7 +346,7 @@ message (type: string): in case any additional parameter is needed to build the 
   }
 }
 ```
-11. assets info
+12. assets info
 ```json
 {
   "seq": 1,
@@ -343,7 +356,7 @@ message (type: string): in case any additional parameter is needed to build the 
   }
 }
 ```
-12. Get transactions
+13. Get transactions
 ```json
 {
   "seq": 1,

@@ -7,6 +7,7 @@ import utils
 import random
 import requests
 import sys
+from base64 import b16encode
 
 class Node():
 
@@ -329,7 +330,7 @@ class Node():
         output = subprocess.Popen(command_string,stdout=subprocess.PIPE)
         policyID = str(output.communicate()[0].decode('utf-8')).rstrip()
         utils.save_files(path, wallet_id + '.policyID',str(policyID))
-        return policyID
+        return policy_script, policyID
 
     def sign_transaction(self, wallet_id, policyid):
         """Sign the transaction based on tx_raw file.
@@ -501,12 +502,16 @@ class Node():
             policyid = ''
             for token_info in mint_info:
                 asset_name = token_info['name']
+                asset_name = asset_name.encode('utf-8')
+                asset_name = b16encode(asset_name)
+                asset_name = asset_name.decode('utf-8')
                 asset_quantity = int(token_info['amount'])
                 policyid = token_info['policyID']
 
                 if policyid == '':
                     # Create keys and policy IDs
                     policy_script, policyid = utils.create_minting_policy(id)
+                    # policy_script, policyid = self.create_minting_policy(id)
                     script_path = self.KEYS_FILE_PATH + '/' + id + '/minting/' + policyid + '.policy.script'
                 else:
                     policyid = token_info['policyID']
@@ -772,7 +777,13 @@ class IOT(Node, Wallet):
             print('Executing query tip')
             result = Node.query_tip_exec(self)
             main.update(result)
-        
+
+        if obj[0]['cmd_id'] == 'list_wallets':
+            print('Executing list of known wallets')
+            result = Wallet.list_wallets(self)
+            main['list_wallets'] = result
+            # main.update(result)
+            
         elif obj[0]['cmd_id'] == 'generate_new_mnemonic_phrase':
             print('Executing generate_new_mnemonic_phrase')
             size = obj[0]['message']['size']

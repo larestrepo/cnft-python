@@ -15,16 +15,19 @@ Node.query_protocol()
 query_tip = Node.query_tip_exec()
 print(query_tip)
 
-transactions = Node.get_transactions('addr_test1qq3nkre520rashkeq843mptpz3wq0l8c4lzw2gpzg0mv3urjkcctzvtrmt0chuqgaphal08kaqhn0gn295v7wefe95eq23ruet')
+list_wallets = IOT.list_wallets()
+print(list_wallets)
+
+transactions = Node.get_transactions('addr_test1qze9flv4z2k3pxf94cs9d33ky40qhlzcflv4s2ud7ayufh7skmwuaaukau6fgmer4a07zk0zdahsj2q4zaaayncsv5wqxcmcfs')
 print(transactions)
 
-balance = Node.get_balance('76619605f95582f288daf4bd8b6188dad8c898d7')
+balance = Node.get_balance('689f3a6a8132d58fbefe9673bcbe39f1cd8307c4')
 print(balance)
 
 params = {
 "message": {
     "tx_info":{
-        "id": "987f6d81f4f72c484f6d34c53e7d7f2719f40705",
+        "id": "689f3a6a8132d58fbefe9673bcbe39f1cd8307c4",
         "metadata": {
             "4567":{
                 "título": "Graduación",
@@ -33,8 +36,8 @@ params = {
         },
         "mint": [
             {
-                "name": "PruebaACME1119",
-                "amount": 1,
+                "name": "PruebaTolima1",
+                "amount": 48,
                 "policyID":"",
             },
         ],
@@ -44,5 +47,21 @@ params = {
 mint_info = Node.minting(params)
 
 print(mint_info)
+
+# params = {
+# {
+#   "seq": 1,
+#   "cmd_id": "generate_wallet",
+#   "message": {
+#     "wallet_name": "asfgbb",
+#     "mnemonic": [
+#       "asdfd",
+#       "df",
+#       "fd"
+#     ],
+#     "passphrase": "sdfddd"
+#   }
+# }
+# }
 
 
