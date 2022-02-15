@@ -1,6 +1,6 @@
 # Setting up the virtual environment for the first time
 
-    sudo apt install python-pip
+    sudo apt install python3-pip
     sudo -H pip3 install --upgrade pip
     sudo -H pip3 install virtualenv virtualenvwrapper
 
@@ -12,5 +12,11 @@
 ### Create the virtual environment
 
     mkvirtualenv <name of the virtual environment>
+    
+ List all virtualenvironments
+ 
+    lsvirtualenv
+ 
+ 
 
 

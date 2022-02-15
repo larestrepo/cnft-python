@@ -48,7 +48,15 @@ Installation
     git fetch --tags --all
     git pull
     git checkout $(curl -s https://api.github.com/repos/input-output-hk/cardano-wallet/releases/latest | jq -r .tag_name)
-    $CNODE_HOME/scripts/stack-build.sh
+    
+ Install stack
+ 
+    curl -sSL https://get.haskellstack.org/ | sh
+    
+(Optional) At the end, there is one message to add to PATH
+
+    echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc
+    stack build --test --no-run-tests --copy-bins --local-bin-path ~/.cabal/bin  2>&1 | tee /tmp/build.log
 
 Start cardano wallet
 
