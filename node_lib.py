@@ -497,7 +497,7 @@ class Node():
             self.sign_transaction(id,policyid)
             self.submit_transaction()
             mint = {
-                "message":{
+                "mint":{
                 "policyid": policyid,
                 "asset_name": asset_name,
                 "quantity_mint": asset_quantity,
@@ -510,7 +510,7 @@ class Node():
             }
         else:
             mint = {
-                'message':"Not enough funds for minting",
+                'mint':"Not enough funds for minting",
                 'code': "Not enough funds for minting",
             }
         
@@ -764,7 +764,9 @@ class IOT(Node, Wallet):
             print('Executing creation of minting policy')
             id = obj[0]['message']['id']
             policy_script, policyID = Node.create_minting_policy(self, id)
-            main['tx_result'] = policyID
+            main['tx_result'] = {
+                'policyID': policyID
+            }
 
         elif obj[0]['cmd_id'] == 'mint_asset':
             print('Executing mint asset')

@@ -10,18 +10,18 @@ working_dir = "/home/cardanodatos/git/cnft-python/"
 
 wallet = Wallet(working_dir)
 
-list_wallets = wallet.list_wallets()
-print(list_wallets)
+# list_wallets = wallet.list_wallets()
+# print(list_wallets)
 
 #Steps to create a wallet
 
 #Generate mnemonic
-# mnemonic = wallet.generate_mnemonic(24)
-# print(mnemonic)
+mnemonic = wallet.generate_mnemonic(24)
+print(mnemonic)
 
-# #Create wallet
-# wallet_created = wallet.create_wallet('my_wallet_name','my_wallet_password',mnemonic)
-# print(wallet_created)
+#Create wallet
+wallet_created = wallet.create_wallet('my_wallet_name','my_wallet_password',mnemonic)
+print(wallet_created)
 
 
 # id = wallet_created['id']
