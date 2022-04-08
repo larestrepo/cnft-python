@@ -5,8 +5,9 @@ Section to interact with cardano wallet lib
 """
 
 from node_lib import Wallet
+import utils
 
-working_dir = "/home/cardanodatos/git/cnft-python/"
+working_dir = "/home/cardanodatos/cnft-python/"
 
 wallet = Wallet(working_dir)
 
@@ -20,8 +21,11 @@ mnemonic = wallet.generate_mnemonic(24)
 print(mnemonic)
 
 #Create wallet
-wallet_created = wallet.create_wallet('my_wallet_name','my_wallet_password',mnemonic)
+wallet_created = wallet.create_wallet('OurWallet#','OurWallet#',mnemonic)
 print(wallet_created)
+id = wallet_created['id']
+
+utils.towallet(id, mnemonic)
 
 
 # id = wallet_created['id']

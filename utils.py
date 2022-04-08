@@ -7,6 +7,8 @@ import json
 with open('./config_file.json') as file:
     params=json.load(file)
 keys_file_path = params['node']['keys_path']
+CARDANO_NETWORK = params['node']['CARDANO_NETWORK']
+CARDANO_NETWORK_MAGIC = params['node']['CARDANO_NETWORK_MAGIC']
 if not os.path.exists(keys_file_path):
     os.makedirs(keys_file_path)
 
@@ -98,7 +100,7 @@ def towallet(wallet_id,mnemonic):
         output.stdout.close()
         payment_xpub = output1.communicate()[0].decode('utf-8')
         save_files(path, wallet_id + '.payment.xpub',str(payment_xpub))
-        CARDANO_NETWORK = config('CARDANO_NETWORK')
+        # CARDANO_NETWORK = config('CARDANO_NETWORK')
 
         # Generate payment address from verification key
         output = cat_files(path, wallet_id + '.payment.xprv')
@@ -148,7 +150,7 @@ def towallet(wallet_id,mnemonic):
         subprocess.run(command_string)
 
         # Build stake and payment addresses
-        CARDANO_NETWORK_MAGIC = config('CARDANO_NETWORK_MAGIC')
+        # CARDANO_NETWORK_MAGIC = config('CARDANO_NETWORK_MAGIC')
         command_string = [
             'cardano-cli', 'stake-address', 'build', '--stake-verification-key-file', path + wallet_id + '.stake.vkey',
             '--testnet-magic', CARDANO_NETWORK_MAGIC, '--out-file', path + wallet_id + '.stake.addr'
