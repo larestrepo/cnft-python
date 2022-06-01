@@ -1,4 +1,6 @@
-# CardanoPython
+# This repo is no longer maintained. For the latest updates please check the fork generated,  I am working there with some other devs in the improvement of the Cardano Python library including much more functionalities. [Cardano Python Lib](https://github.com/AylluAcademy-org/CardanoPython)
+
+CardanoPython
 
 There are 2 ways to interact with this library.
 
